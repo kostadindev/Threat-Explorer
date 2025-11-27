@@ -205,7 +205,7 @@ class LLMAgent(BaseAgent):
         **kwargs
     ):
         """
-        Process messages using direct LLM inference with streaming.
+        Process messages using LLM inference with streaming and tool calling support.
 
         Args:
             messages: Conversation history
@@ -217,10 +217,9 @@ class LLMAgent(BaseAgent):
         """
         print("", flush=True)
         print("=" * 80, flush=True)
-        print("🌊 LLM AGENT - STREAMING MODE", flush=True)
+        print("🌊 LLM AGENT - STREAMING MODE WITH TOOL SUPPORT", flush=True)
         print("=" * 80, flush=True)
-        print("⚠️  Note: Streaming mode does not support function calling/tool use", flush=True)
-        print("    For database queries, use non-streaming mode (agent_type='llm')", flush=True)
+        print(f"🔧 Available tools: {[tool['function']['name'] for tool in self.tools]}", flush=True)
         print("=" * 80, flush=True)
         print("", flush=True)
 
@@ -240,7 +239,7 @@ class LLMAgent(BaseAgent):
         # Combine: system messages first, then conversation
         langchain_messages = system_messages + conversation_messages
 
-        # Create LLM instance with parameters
+        # Create LLM instance with parameters and tools
         llm = ChatOpenAI(
             model=self.model,
             temperature=temperature,
@@ -249,15 +248,104 @@ class LLMAgent(BaseAgent):
             streaming=True
         )
 
-        print("🔄 Starting to stream response chunks...", flush=True)
+        # Bind tools to the LLM
+        llm_with_tools = llm.bind_tools(self.tools)
+
+        # Handle tool calls in a loop before streaming final response
+        tool_calls_made = []
+        iteration = 0
+        max_iterations = 5  # Prevent infinite loops
+        final_response = None
+
+        print("🔄 Checking for tool calls...", flush=True)
         print("", flush=True)
 
-        # Stream response
+        while iteration < max_iterations:
+            iteration += 1
+            
+            # Make a non-streaming call to check for tool calls
+            # This is fast and allows us to execute tools before streaming
+            response = llm_with_tools.invoke(langchain_messages)
+
+            # Check if LLM wants to use tools
+            if hasattr(response, "tool_calls") and response.tool_calls:
+                print("", flush=True)
+                print("=" * 80, flush=True)
+                print(f"🔧 Tool calls detected (iteration {iteration})", flush=True)
+                print(f"📞 Number of tool calls: {len(response.tool_calls)}", flush=True)
+                print("=" * 80, flush=True)
+                print("", flush=True)
+
+                # Add assistant's message with tool calls to history
+                langchain_messages.append(response)
+
+                # Execute each tool call
+                for idx, tool_call in enumerate(response.tool_calls, 1):
+                    tool_name = tool_call["name"]
+                    tool_arguments = tool_call["args"]
+                    tool_calls_made.append(tool_name)
+
+                    print(f"\n🔧 Tool Call #{idx}", flush=True)
+                    print(f"   Name: {tool_name}", flush=True)
+                    print(f"   Arguments: {json.dumps(tool_arguments, indent=6)}", flush=True)
+
+                    # Execute the tool
+                    tool_result = self._execute_tool(tool_name, tool_arguments)
+
+                    print(f"   Result length: {len(tool_result)} characters", flush=True)
+
+                    # Add tool result to messages
+                    langchain_messages.append(
+                        ToolMessage(
+                            content=tool_result,
+                            tool_call_id=tool_call["id"]
+                        )
+                    )
+
+                print("", flush=True)
+                print("🔄 Getting final response with tool results...", flush=True)
+                print("", flush=True)
+                # Continue the loop to get the next response
+                continue
+            else:
+                # No tool calls, store this response to stream
+                final_response = response
+                break
+
+        if tool_calls_made:
+            print("", flush=True)
+            print("=" * 80, flush=True)
+            print(f"✅ Tool execution complete", flush=True)
+            print(f"📊 Total tools used: {tool_calls_made}", flush=True)
+            print("=" * 80, flush=True)
+            print("", flush=True)
+
+        # Now stream the final response after tool execution
+        print("🔄 Starting to stream final response chunks...", flush=True)
+        print("", flush=True)
+
+        # Stream the final response
+        # If we have a response with content, stream it in chunks for better UX
+        # Otherwise, make a streaming API call
         chunk_count = 0
-        for chunk in llm.stream(langchain_messages):
-            if chunk.content:
+        if final_response and final_response.content:
+            # Stream the content we already have in chunks
+            content = final_response.content
+            chunk_size = 30  # Stream in chunks for smooth UX
+            for i in range(0, len(content), chunk_size):
+                chunk = content[i:i + chunk_size]
                 chunk_count += 1
-                yield chunk.content
+                yield chunk
+        elif final_response is None or (final_response and not final_response.content):
+            # Make a streaming API call for the final response
+            # This handles cases where we don't have a final response yet
+            for chunk in llm_with_tools.stream(langchain_messages):
+                if chunk.content:
+                    chunk_count += 1
+                    yield chunk.content
+        else:
+            # Fallback: yield empty string if we somehow get here
+            yield ""
 
         print("", flush=True)
         print(f"✅ Streaming complete - sent {chunk_count} chunks", flush=True)
