@@ -4,12 +4,15 @@ import { chatService } from '../services/chatService';
 
 const CHAT_HISTORY_KEY = "chat_history";
 
+export type AgentType = "llm" | "react" | "multi";
+
 export const useChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [agentType, setAgentType] = useState<AgentType>("llm");
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleMessagesLoad = useCallback((loadedMessages: Message[]) => {
@@ -45,7 +48,7 @@ export const useChat = () => {
     abortControllerRef.current = controller;
 
     try {
-      const stream = await chatService.sendMessage(newMessages, controller.signal);
+      const stream = await chatService.sendMessage(newMessages, agentType, controller.signal);
       if (!stream) return;
 
       setMessages((prev) => [...prev, { content: "", role: "assistant" }]);
@@ -106,6 +109,8 @@ export const useChat = () => {
     isSending,
     isTyping,
     suggestions,
+    agentType,
+    setAgentType,
     clearChat,
     sendMessage,
     onMessagesLoad: handleMessagesLoad,

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, memo } from "react";
-import { Button, Input, Layout, theme } from "antd";
+import { Button, Input, Layout, theme, Select } from "antd";
 import { SendOutlined, ReloadOutlined } from "@ant-design/icons";
 import { DarkModeSwitch } from "react-toggle-dark-mode";
 import { useChat } from "../hooks/useChat";
+import type { AgentType } from "../hooks/useChat";
 import { MessageList } from "./MessageList";
 import { Suggestions } from "./Suggestions";
 import { Particles, initParticlesEngine } from "@tsparticles/react";
@@ -114,6 +115,8 @@ const ChatComponent: React.FC = () => {
     isSending,
     isTyping,
     suggestions,
+    agentType,
+    setAgentType,
     clearChat,
     sendMessage,
     onMessagesLoad,
@@ -190,6 +193,17 @@ const ChatComponent: React.FC = () => {
                 checked={isDarkMode}
                 onChange={toggleDarkMode}
                 size={25}
+              />
+              <Select<AgentType>
+                value={agentType}
+                onChange={setAgentType}
+                disabled={isSending}
+                style={{ width: 120 }}
+                options={[
+                  { value: "llm", label: "LLM" },
+                  { value: "react", label: "ReACT" },
+                  { value: "multi", label: "Multi-Agent" },
+                ]}
               />
               <Button
                 icon={<ReloadOutlined />}

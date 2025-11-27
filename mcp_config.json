@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "database": {
+      "command": "python",
+      "args": [
+        "backend/mcp/database_server.py"
+      ],
+      "description": "MCP server for querying the cybersecurity attacks database"
+    }
+  }
+}

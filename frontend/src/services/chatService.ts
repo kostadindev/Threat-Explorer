@@ -2,12 +2,14 @@ import { Message, SuggestionResponse } from '../types/chat';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
+export type AgentType = "llm" | "react" | "multi";
+
 export const chatService = {
-  async sendMessage(history: Message[], signal?: AbortSignal): Promise<ReadableStream<Uint8Array> | null> {
+  async sendMessage(history: Message[], agentType: AgentType, signal?: AbortSignal): Promise<ReadableStream<Uint8Array> | null> {
     const response = await fetch(`${API_URL}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ history }),
+      body: JSON.stringify({ history, agent_type: agentType }),
       signal,
     });
 

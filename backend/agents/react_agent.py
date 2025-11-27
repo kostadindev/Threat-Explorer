@@ -1,4 +1,5 @@
 from typing import List, Dict, Any
+import sys
 from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_react_agent
 from langchain_core.prompts import PromptTemplate
@@ -12,6 +13,7 @@ from constants import (
     THREAT_ANALYSIS_TOOL_DESCRIPTION,
     THREAT_SEVERITY_KEYWORDS
 )
+from tools import create_database_tool, create_database_info_tool
 
 
 class ReACTAgent(BaseAgent):
@@ -47,6 +49,8 @@ class ReACTAgent(BaseAgent):
                 func=self._analyze_threat,
                 description=THREAT_ANALYSIS_TOOL_DESCRIPTION
             ),
+            create_database_tool(),
+            create_database_info_tool(),
         ]
 
         return tools
@@ -146,8 +150,22 @@ Thought: {agent_scratchpad}"""
             )
 
         try:
+            print("", flush=True)
+            print("=" * 80, flush=True)
+            print("🤖 ReACT AGENT - Starting reasoning loop", flush=True)
+            print(f"📝 User query: {user_message}", flush=True)
+            print(f"🔧 Available tools: {[tool.name for tool in self.tools]}", flush=True)
+            print("=" * 80, flush=True)
+            print("", flush=True)
+
             # Run the agent
             result = self.agent_executor.invoke({"input": user_message})
+
+            print("", flush=True)
+            print("=" * 80, flush=True)
+            print("✅ ReACT AGENT - Reasoning complete", flush=True)
+            print("=" * 80, flush=True)
+            print("", flush=True)
 
             return AgentResponse(
                 message=Message(role="assistant", content=result["output"]),
@@ -159,6 +177,7 @@ Thought: {agent_scratchpad}"""
                 }
             )
         except Exception as e:
+            print(f"❌ ReACT AGENT - Error: {str(e)}", file=sys.stderr, flush=True)
             return AgentResponse(
                 message=Message(
                     role="assistant",
