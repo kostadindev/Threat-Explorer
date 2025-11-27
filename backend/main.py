@@ -2,7 +2,7 @@ import os
 from typing import List
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from dotenv import load_dotenv
@@ -19,15 +19,27 @@ llm = ChatOpenAI(
 
 
 class Message(BaseModel):
-    role: str
-    content: str
+    role: str = Field(..., examples=["user"])
+    content: str = Field(..., examples=["What is a SQL injection attack and how can I prevent it?"])
 
 
 class ChatRequest(BaseModel):
-    messages: List[Message]
-    model: str = "gpt-4o-mini"
-    temperature: float = 0.7
-    max_tokens: int = 2000
+    messages: List[Message] = Field(
+        ...,
+        examples=[[
+            {
+                "role": "system",
+                "content": "You are a cybersecurity expert assistant. Provide clear, accurate information about security threats and best practices."
+            },
+            {
+                "role": "user",
+                "content": "What is a SQL injection attack and how can I prevent it?"
+            }
+        ]]
+    )
+    model: str = Field(default="gpt-4o-mini", examples=["gpt-4o-mini"])
+    temperature: float = Field(default=0.7, examples=[0.7])
+    max_tokens: int = Field(default=2000, examples=[2000])
 
 
 class ChatResponse(BaseModel):
