@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from typing import AsyncIterator
 
 from models import ChatRequest, SuggestionRequest, SuggestionResponse
 from config import config
@@ -49,22 +48,6 @@ async def ping():
     return {"message": "pong"}
 
 
-async def generate_stream(text: str) -> AsyncIterator[str]:
-    """
-    Generate a stream of text chunks.
-
-    Args:
-        text: The complete text to stream
-
-    Yields:
-        Text chunks
-    """
-    # Stream the text in chunks for a more natural feel
-    chunk_size = 10
-    for i in range(0, len(text), chunk_size):
-        yield text[i:i + chunk_size]
-
-
 @router.post("/chat")
 async def chat(request: ChatRequest):
     """
@@ -91,18 +74,31 @@ async def chat(request: ChatRequest):
                 detail="OPENAI_API_KEY not configured"
             )
 
-        # Use the agent to generate response
-        response = agent.chat(
-            messages=request.history,
-            temperature=request.temperature,
-            max_tokens=request.max_tokens
-        )
+        # Use the agent's streaming method if available
+        if hasattr(agent, 'chat_stream'):
+            return StreamingResponse(
+                agent.chat_stream(
+                    messages=request.history,
+                    temperature=request.temperature,
+                    max_tokens=request.max_tokens
+                ),
+                media_type="text/plain"
+            )
+        else:
+            # Fallback to non-streaming for agents that don't support it
+            response = agent.chat(
+                messages=request.history,
+                temperature=request.temperature,
+                max_tokens=request.max_tokens
+            )
 
-        # Stream the response
-        return StreamingResponse(
-            generate_stream(response.message.content),
-            media_type="text/plain"
-        )
+            async def generate_fallback():
+                yield response.message.content
+
+            return StreamingResponse(
+                generate_fallback(),
+                media_type="text/plain"
+            )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

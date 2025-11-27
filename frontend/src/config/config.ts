@@ -26,8 +26,8 @@ interface Config {
 
 
 export const UI_CONFIG: Config = {
-  name: "AI Kostadin",
-  inputPlaceholder: "Ask about Kostadin's work",
+  name: "CHIA Threat Explorer",
+  inputPlaceholder: "Ask about Threat Explorer",
   maxInputLength: 256,
   defaultPrompts: [
     "Current project?",
@@ -36,7 +36,7 @@ export const UI_CONFIG: Config = {
     "Explain Deep Gestures",
   ],
   chatDescription: `
-## Hi! I'm AI Kostadin @spin[🤖]
+## Hi! I'm Threat Explorer @spin[🤖]
 
 I'm here to chat about my work and expertise. Feel free to ask me about:
 
