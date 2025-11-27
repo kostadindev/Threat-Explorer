@@ -6,7 +6,7 @@ from agents import Message
 
 class ChatRequest(BaseModel):
     """Request model for chat endpoint"""
-    messages: List[Message] = Field(
+    history: List[Message] = Field(
         ...,
         examples=[[
             {
@@ -35,4 +35,20 @@ class ChatResponse(BaseModel):
     metadata: dict = Field(
         default_factory=dict,
         description="Additional metadata about the response (agent type, tools used, etc.)"
+    )
+
+
+class SuggestionRequest(BaseModel):
+    """Request model for suggestion endpoint"""
+    history: List[Message] = Field(
+        ...,
+        description="Chat history to generate suggestions from"
+    )
+
+
+class SuggestionResponse(BaseModel):
+    """Response model for suggestion endpoint"""
+    suggestions: List[str] = Field(
+        default_factory=list,
+        description="List of suggested follow-up questions"
     )

@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+
+html, body, #root {
+  overflow-x: hidden;
+}
+
+.break-words {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.chat-scroll-container {
+  overflow-x: hidden;
+}
