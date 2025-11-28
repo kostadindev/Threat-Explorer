@@ -235,5 +235,97 @@ class MultiAgent(BaseAgent):
                 metadata={"agent_type": "multi", "error": str(e)}
             )
 
+    def chat_stream(
+        self,
+        messages: List[Message],
+        temperature: float = 0.7,
+        max_tokens: int = 2000,
+        **kwargs
+    ):
+        """
+        Process messages using multi-agent coordination with streaming.
+
+        Args:
+            messages: Conversation history
+            temperature: Sampling temperature
+            max_tokens: Maximum tokens to generate
+            **kwargs: Can include 'consult_all' to get input from all specialists
+
+        Yields:
+            Chunks of the response as they arrive
+        """
+        # Extract user message
+        user_message = None
+        for msg in reversed(messages):
+            if msg.role == "user":
+                user_message = msg.content
+                break
+
+        if not user_message:
+            yield "No user message found."
+            return
+
+        try:
+            consult_all = kwargs.get("consult_all", False)
+            specialist_responses = {}
+
+            # Consult specialists (non-streaming)
+            if consult_all:
+                for specialist_id in self.specialists.keys():
+                    response = self._consult_specialist(
+                        specialist_id,
+                        user_message,
+                        temperature,
+                        max_tokens
+                    )
+                    specialist_responses[specialist_id] = response
+            else:
+                specialist_id = self._route_to_specialist(user_message)
+                response = self._consult_specialist(
+                    specialist_id,
+                    user_message,
+                    temperature,
+                    max_tokens
+                )
+                specialist_responses[specialist_id] = response
+
+            # Stream the synthesis
+            if len(specialist_responses) == 1:
+                # Only one specialist - stream their response directly
+                response_text = list(specialist_responses.values())[0]
+                chunk_size = 30
+                for i in range(0, len(response_text), chunk_size):
+                    yield response_text[i:i + chunk_size]
+            else:
+                # Multiple specialists - stream the synthesis
+                synthesis_prompt = f"""Given the following expert opinions on the question: "{user_message}"
+
+"""
+                for specialist, response in specialist_responses.items():
+                    synthesis_prompt += f"\n{self.specialists[specialist]['name']}:\n{response}\n"
+
+                synthesis_prompt += "\nSynthesize these expert opinions into a comprehensive, coherent answer. Highlight key points from each specialist and resolve any contradictions."
+
+                messages_to_llm = [
+                    SystemMessage(content="You are a coordinator synthesizing expert opinions."),
+                    HumanMessage(content=synthesis_prompt)
+                ]
+
+                llm = ChatOpenAI(
+                    model=self.model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    openai_api_key=self.api_key,
+                    streaming=True
+                )
+
+                # Stream the synthesis
+                for chunk in llm.stream(messages_to_llm):
+                    if chunk.content:
+                        yield chunk.content
+
+        except Exception as e:
+            yield f"I encountered an error while coordinating the specialists: {str(e)}"
+
     def get_agent_type(self) -> str:
         return "multi"

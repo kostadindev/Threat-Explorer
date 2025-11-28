@@ -42,7 +42,6 @@ The Dockerfile creates a multi-stage build that:
 ✅ **Backend API**: FastAPI server with all agent types (LLM, ReACT, Multi-Agent)
 ✅ **Frontend**: Built React app served as static files
 ✅ **Database**: SQLite database loaded from CSV on startup
-✅ **MCP Support**: MCP server files included (can be run separately if needed)
 ✅ **Auto-initialization**: Database loads automatically on startup
 
 ## Environment Variables
@@ -89,10 +88,6 @@ docker logs -f threat-explorer
 - Check that frontend was built: `docker build` should show "frontend-builder" stage
 - Verify static files are mounted in `backend/main.py`
 - Check logs for frontend path errors
-
-### MCP not working
-- MCP server files are included but may need to be run separately
-- Check `backend/mcp/database_server.py` for MCP server implementation
 
 ## Updating the App
 

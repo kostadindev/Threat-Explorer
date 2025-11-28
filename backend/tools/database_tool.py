@@ -102,59 +102,72 @@ def get_database_info() -> str:
         })
 
 
-def create_database_tool():
+def query_db_tool():
     """
     Create a LangChain Tool for database queries.
 
     Returns:
         Tool instance configured for database queries
     """
-    from langchain_core.tools import Tool
+    from langchain_core.tools import tool
 
-    return Tool(
-        name="QueryDatabase",
-        func=query_database,
-        description="""Query the cybersecurity attacks database using SQL.
+    @tool
+    def QueryDatabase(query: str) -> str:
+        """Query the cybersecurity attacks database using SQL.
 
-The database contains a table called 'attacks' with cybersecurity attack data including:
-- Timestamp: When the attack occurred
-- Source IP Address, Destination IP Address
-- Source Port, Destination Port
-- Protocol: Network protocol used
-- Attack Type: Type of attack (e.g., Malware, DDoS, Intrusion)
-- Severity Level: Severity of the attack (Low, Medium, High, Critical)
-- Malware Indicators, Anomaly Scores
-- Action Taken, Alerts/Warnings
-- Geo-location Data, Network Segment
-- And many more fields
+        The database contains a table called 'attacks' with cybersecurity attack data including:
+        - Timestamp: When the attack occurred
+        - Source IP Address, Destination IP Address
+        - Source Port, Destination Port
+        - Protocol: Network protocol used
+        - Attack Type: Type of attack (e.g., Malware, DDoS, Intrusion)
+        - Severity Level: Severity of the attack (Low, Medium, High, Critical)
+        - Malware Indicators, Anomaly Scores
+        - Action Taken, Alerts/Warnings
+        - Geo-location Data, Network Segment
+        - And many more fields
 
-Use this tool to query attack patterns, statistics, and specific attack details.
-Input should be a valid SQL query string. The query will be automatically limited to 50 rows if no LIMIT is specified.
+        Use this tool to query attack patterns, statistics, and specific attack details.
+        The query will be automatically limited to 50 rows if no LIMIT is specified.
 
-Example queries:
-- "SELECT * FROM attacks WHERE \"Attack Type\" = 'Malware' LIMIT 5"
-- "SELECT \"Attack Type\", COUNT(*) as count FROM attacks GROUP BY \"Attack Type\""
-- "SELECT * FROM attacks WHERE \"Severity Level\" = 'Critical' LIMIT 10"
+        Example queries:
+        - SELECT * FROM attacks WHERE "Attack Type" = 'Malware' LIMIT 5
+        - SELECT "Attack Type", COUNT(*) as count FROM attacks GROUP BY "Attack Type"
+        - SELECT * FROM attacks WHERE "Severity Level" = 'Critical' LIMIT 10
 
-Note: Column names with spaces must be quoted with double quotes."""
-    )
+        Note: Column names with spaces must be quoted with double quotes.
+
+        Args:
+            query: SQL query string to execute on the attacks table
+
+        Returns:
+            JSON string with query results or error message
+        """
+        return query_database(query)
+
+    return QueryDatabase
 
 
-def create_database_info_tool():
+def get_db_info():
     """
     Create a LangChain Tool for getting database schema information.
 
     Returns:
         Tool instance configured for database info
     """
-    from langchain_core.tools import Tool
+    from langchain_core.tools import tool
 
-    return Tool(
-        name="GetDatabaseInfo",
-        func=get_database_info,
-        description="""Get information about the cybersecurity attacks database schema.
+    @tool
+    def GetDatabaseInfo() -> str:
+        """Get information about the cybersecurity attacks database schema.
 
-Use this tool to understand what data is available in the database before querying it.
-It returns the table name, total number of rows, and all available columns with their types.
-This tool does not require any input."""
-    )
+        Use this tool to understand what data is available in the database before querying it.
+        It returns the table name, total number of rows, and all available columns with their types.
+        This tool does not require any input.
+
+        Returns:
+            JSON string with database schema information
+        """
+        return get_database_info()
+
+    return GetDatabaseInfo
