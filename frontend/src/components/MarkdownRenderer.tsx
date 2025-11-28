@@ -2,17 +2,39 @@ import React, { useMemo } from "react";
 import Markdown from "markdown-to-jsx";
 import { theme } from "antd";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { base16AteliersulphurpoolLight, materialLight, vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import styles from "./spin.module.css";
 
 import TableRenderer from "./TableRenderer";
 import BarChartRenderer from "./BarChartRenderer";
+import PieChartRenderer from "./PieChartRenderer";
 
 const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
   const { useToken } = theme;
   const { token } = useToken();
 
   const textColor = token.colorText; // Text color based on theme
+
+  // Detect if we're in dark mode by calculating background luminance
+  const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  };
+
+  const getLuminance = (hex: string) => {
+    const rgb = hexToRgb(hex);
+    if (!rgb) return 0;
+    // Calculate relative luminance
+    const { r, g, b } = rgb;
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  };
+
+  const isDarkMode = getLuminance(token.colorBgContainer) < 0.5;
+  const syntaxTheme = isDarkMode ? vscDarkPlus : base16AteliersulphurpoolLight;
 
   // Custom components for Markdown elements
   const MarkdownComponents = useMemo(
@@ -70,16 +92,24 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
           language === "db-table" ||
           (trimmed.startsWith("{") && trimmed.includes('"columns"'));
 
-        const isChartData =
+        const isBarChartData =
           language === "db-chart" ||
           (trimmed.startsWith("{") && trimmed.includes('"xKey"') && trimmed.includes('"yKey"'));
+
+        const isPieChartData =
+          language === "db-pie" ||
+          (trimmed.startsWith("{") && trimmed.includes('"nameKey"') && trimmed.includes('"valueKey"'));
 
         if (isTableData) {
           return <TableRenderer content={contentStr} />;
         }
 
-        if (isChartData) {
+        if (isBarChartData) {
           return <BarChartRenderer content={contentStr} />;
+        }
+
+        if (isPieChartData) {
+          return <PieChartRenderer content={contentStr} />;
         }
 
         if (language) {
@@ -87,12 +117,13 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
             <div className="rounded-md overflow-hidden my-3">
               <SyntaxHighlighter
                 language={language}
-                style={vscDarkPlus}
+                style={syntaxTheme}
                 PreTag="div"
                 customStyle={{
                   margin: 0,
                   borderRadius: "0.375rem",
-                  backgroundColor: token.colorFillAlter, // Use theme token for background
+                  backgroundColor: isDarkMode ? token.colorFillAlter : '#f5f5f5',
+                  padding: '1rem',
                 }}
               >
                 {String(children).replace(/\n$/, "")}
@@ -153,7 +184,7 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
         return <span>{children}</span>;
       },
     }),
-    [token.colorFillAlter]
+    [token.colorFillAlter, syntaxTheme]
   );
 
   // Process the content to replace @spin[] tags with HTML

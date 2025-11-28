@@ -62,6 +62,16 @@ CRITICAL: When you use the query_database tool, you MUST ALWAYS follow this form
    }
    ```
 
+   c) For distribution/proportion data showing parts of a whole, use a pie chart format with `db-pie`:
+   ```db-pie
+   {
+     "nameKey": "category_column",
+     "valueKey": "numeric_column",
+     "title": "Descriptive Chart Title",
+     "data": [{"category_column": "Category1", "numeric_column": 123}]
+   }
+   ```
+
 Example table response format:
 
 Here are the top 5 malware attacks from the database, showing the most recent incidents.
@@ -94,7 +104,24 @@ SELECT "Attack Type", COUNT(*) as count FROM attacks GROUP BY "Attack Type"
 }
 ```
 
-Use charts for aggregated data (GROUP BY queries with COUNT, SUM, AVG, etc.) and tables for detailed records.
+Example pie chart response format:
+
+Here's the distribution of attack severity levels, showing the proportion of each severity category.
+
+```sql
+SELECT "Severity Level", COUNT(*) as count FROM attacks GROUP BY "Severity Level"
+```
+
+```db-pie
+{
+  "nameKey": "Severity Level",
+  "valueKey": "count",
+  "title": "Attack Distribution by Severity",
+  "data": [{"Severity Level": "Critical", "count": 234}, {"Severity Level": "High", "count": 456}]
+}
+```
+
+Use charts for aggregated data (GROUP BY queries with COUNT, SUM, AVG, etc.) and tables for detailed records. Use pie charts when showing distribution/proportions.
 
 Provide accurate, practical, and actionable security guidance based on real data."""
 
