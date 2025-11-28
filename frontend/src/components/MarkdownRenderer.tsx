@@ -5,6 +5,8 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import styles from "./spin.module.css";
 
+import TableRenderer from "./TableRenderer";
+
 const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
   const { useToken } = theme;
   const { token } = useToken();
@@ -60,6 +62,15 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
       }) => {
         const match = /lang-(\w+)/.exec(className || "");
         const language = match ? match[1] : "";
+        const contentStr = String(children).replace(/\n$/, "");
+        const trimmed = contentStr.trim();
+        const isTableData =
+          language === "db-table" ||
+          (trimmed.startsWith("{") && trimmed.includes('"columns"'));
+
+        if (isTableData) {
+          return <TableRenderer content={contentStr} />;
+        }
 
         if (language) {
           return (
@@ -136,10 +147,16 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
   );
 
   // Process the content to replace @spin[] tags with HTML
-  const processedContent = content.replace(
+  let processedContent = content.replace(
     /@spin\[(.*?)\]/g,
     `<span class="${styles.spin}">$1</span>`
   );
+
+  // Auto-close code block if unclosed to allow streaming
+  // If there is an odd number of triple backticks, we are inside a code block
+  if (processedContent.split("```").length % 2 === 0) {
+    processedContent += "\n```";
+  }
 
   return (
     <div
