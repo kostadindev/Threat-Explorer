@@ -90,13 +90,22 @@ async def handle_call_tool(
                     "success": True,
                     "row_count": 0,
                     "message": "Query executed successfully but returned no results.",
+                    "columns": [],
                     "data": []
                 }
             else:
+                # Get column names from the first result if available, or use keys
+                # Assuming results is a list of dictionaries (Row objects acting as dicts)
+                columns = list(results[0].keys()) if results else []
+                
+                # Convert results to list of dicts if they aren't already
+                data = [dict(row) for row in results]
+                
                 response = {
                     "success": True,
                     "row_count": len(results),
-                    "data": results
+                    "columns": columns,
+                    "data": data
                 }
 
             return [types.TextContent(

@@ -68,8 +68,7 @@ class LLMAgent(BaseAgent):
     def chat(
         self,
         messages: List[Message],
-        temperature: float = 0.7,
-        max_tokens: int = 2000,
+        temperature: float = 1,
         **kwargs
     ) -> AgentResponse:
         """

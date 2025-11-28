@@ -44,6 +44,7 @@ def query_database(query: str) -> str:
         print("=" * 80, flush=True)
         return json.dumps({
             "success": True,
+            "query": sql,  # Include the executed query
             "row_count": len(results),
             "data": results
         }, indent=2)

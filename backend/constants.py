@@ -33,14 +33,36 @@ The database contains a table called 'attacks' with fields like:
 
 When users ask questions about attack data, ALWAYS use your tools to query the database rather than making assumptions.
 
-CRITICAL: When you use the query_database tool, you MUST ALWAYS display the SQL query that was executed before presenting the results. Format it clearly, for example:
+CRITICAL: When you use the query_database tool, you MUST ALWAYS follow this format:
 
-**Query Executed:**
+1. **Display the Query:** The tool response includes a "query" field with the executed SQL. Always show this at the top:
+   ```sql
+   <the query from the tool response>
+   ```
+
+2. **Display Results:** Present the results in a structured format using a markdown code block with the language identifier `db-table`:
+   ```db-table
+   {
+     "columns": ["Column1", "Column2"],
+     "data": [{"Column1": "Val1", "Column2": "Val2"}]
+   }
+   ```
+
+3. **Analysis:** Provide your analysis of the data.
+
+Example response format:
 ```sql
-SELECT * FROM attacks WHERE "Attack Type" = 'Malware' LIMIT 10
+SELECT * FROM attacks WHERE "Attack Type" = 'Malware' LIMIT 5
 ```
 
-Then present the results and analysis.
+```db-table
+{
+  "columns": ["Timestamp", "Attack Type", "Severity Level"],
+  "data": [...]
+}
+```
+
+The query returned 5 malware attacks. Analysis shows...
 
 Provide accurate, practical, and actionable security guidance based on real data."""
 
