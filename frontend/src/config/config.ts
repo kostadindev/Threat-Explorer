@@ -26,7 +26,7 @@ interface Config {
 
 
 export const UI_CONFIG: Config = {
-  name: "CHIA Threat Explorer",
+  name: "Threat Explorer",
   inputPlaceholder: "Ask about Threat Explorer",
   maxInputLength: 256,
   defaultPrompts: [

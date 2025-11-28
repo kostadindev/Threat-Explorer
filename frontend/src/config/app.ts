@@ -1,5 +1,5 @@
 export const UI_CONFIG = {
-  name: "AI Kostadin",
+  name: "Threat Explorer",
   inputPlaceholder: "Ask about Kostadin's work",
   maxInputLength: 256,
   defaultPrompts: [
@@ -9,7 +9,7 @@ export const UI_CONFIG = {
     "Explain Deep Gestures",
   ],
   chatDescription: `
-# Hi! I'm AI Kostadin @spin[🤖]
+# Hi! I'm Threat Explorer @spin[🤖]
 
 I'm here to chat about my work and expertise. Feel free to ask me about:
 

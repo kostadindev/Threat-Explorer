@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import Markdown from "markdown-to-jsx";
 import { theme } from "antd";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { base16AteliersulphurpoolLight, materialLight, vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { base16AteliersulphurpoolLight, vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import styles from "./spin.module.css";
 
 import TableRenderer from "./TableRenderer";
