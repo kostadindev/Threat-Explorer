@@ -6,6 +6,7 @@ import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import styles from "./spin.module.css";
 
 import TableRenderer from "./TableRenderer";
+import BarChartRenderer from "./BarChartRenderer";
 
 const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
   const { useToken } = theme;
@@ -64,12 +65,21 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
         const language = match ? match[1] : "";
         const contentStr = String(children).replace(/\n$/, "");
         const trimmed = contentStr.trim();
+
         const isTableData =
           language === "db-table" ||
           (trimmed.startsWith("{") && trimmed.includes('"columns"'));
 
+        const isChartData =
+          language === "db-chart" ||
+          (trimmed.startsWith("{") && trimmed.includes('"xKey"') && trimmed.includes('"yKey"'));
+
         if (isTableData) {
           return <TableRenderer content={contentStr} />;
+        }
+
+        if (isChartData) {
+          return <BarChartRenderer content={contentStr} />;
         }
 
         if (language) {

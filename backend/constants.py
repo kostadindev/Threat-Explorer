@@ -42,15 +42,27 @@ CRITICAL: When you use the query_database tool, you MUST ALWAYS follow this form
    <the query from the tool response>
    ```
 
-3. **Data View:** Present the results in a structured format using a markdown code block with the language identifier `db-table`:
+3. **Data View:** Present the results in a structured format. Choose the appropriate format based on the data:
+
+   a) For detailed data or multiple columns, use a table format with `db-table`:
    ```db-table
    {
-     "columns": ["Column1", "Column2"],
-     "data": [{"Column1": "Val1", "Column2": "Val2"}]
+     "columns": ["Column1", "Column2", "Column3"],
+     "data": [{"Column1": "Val1", "Column2": "Val2", "Column3": "Val3"}]
    }
    ```
 
-Example response format:
+   b) For grouped/aggregated data (e.g., counts, sums, averages by category), use a bar chart format with `db-chart`:
+   ```db-chart
+   {
+     "xKey": "category_column",
+     "yKey": "numeric_column",
+     "title": "Descriptive Chart Title",
+     "data": [{"category_column": "Category1", "numeric_column": 123}]
+   }
+   ```
+
+Example table response format:
 
 Here are the top 5 malware attacks from the database, showing the most recent incidents.
 
@@ -64,6 +76,25 @@ SELECT * FROM attacks WHERE "Attack Type" = 'Malware' LIMIT 5
   "data": [...]
 }
 ```
+
+Example chart response format:
+
+Here's a breakdown of attacks by type, showing which attack types are most common.
+
+```sql
+SELECT "Attack Type", COUNT(*) as count FROM attacks GROUP BY "Attack Type"
+```
+
+```db-chart
+{
+  "xKey": "Attack Type",
+  "yKey": "count",
+  "title": "Attacks by Type",
+  "data": [{"Attack Type": "Malware", "count": 145}, {"Attack Type": "DDoS", "count": 98}]
+}
+```
+
+Use charts for aggregated data (GROUP BY queries with COUNT, SUM, AVG, etc.) and tables for detailed records.
 
 Provide accurate, practical, and actionable security guidance based on real data."""
 

@@ -12,7 +12,6 @@ interface TableData {
 
 const TableRenderer: React.FC<TableRendererProps> = ({ content }) => {
     let parsedData: TableData | null = null;
-    let error: string | null = null;
 
     try {
         parsedData = JSON.parse(content);
