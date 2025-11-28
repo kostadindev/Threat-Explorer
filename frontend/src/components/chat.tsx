@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, memo } from "react";
-import { Button, Input, Layout, theme, Select } from "antd";
-import { SendOutlined, ReloadOutlined } from "@ant-design/icons";
+import { Button, Input, Layout, theme, Select, Tooltip } from "antd";
+import { SendOutlined, ReloadOutlined, DownloadOutlined, UploadOutlined } from "@ant-design/icons";
 import { DarkModeSwitch } from "react-toggle-dark-mode";
 import { useChat } from "../hooks/useChat";
 import type { AgentType } from "../hooks/useChat";
@@ -140,6 +140,52 @@ const ChatComponent: React.FC = () => {
     }
   };
 
+  const handleExportChat = () => {
+    const chatData = {
+      messages,
+      agentType,
+      exportedAt: new Date().toISOString(),
+    };
+
+    const dataStr = JSON.stringify(chatData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `chat-export-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportChat = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const result = event.target?.result as string;
+        const chatData = JSON.parse(result);
+
+        if (chatData.messages && Array.isArray(chatData.messages)) {
+          onMessagesLoad(chatData.messages);
+          if (chatData.agentType && ["llm", "react", "multi"].includes(chatData.agentType)) {
+            setAgentType(chatData.agentType);
+          }
+        } else {
+          alert("Invalid chat format. Please provide a valid chat export file.");
+        }
+      } catch (error) {
+        alert("Error parsing chat file. Please ensure it's a valid JSON file.");
+        console.error("Import error:", error);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
   const headerStyle: React.CSSProperties = {
     height: "80px",
     display: "flex",
@@ -189,28 +235,57 @@ const ChatComponent: React.FC = () => {
               </a>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <DarkModeSwitch
-                checked={isDarkMode}
-                onChange={toggleDarkMode}
-                size={25}
+              <Tooltip title="Toggle Dark Mode">
+                <div>
+                  <DarkModeSwitch
+                    checked={isDarkMode}
+                    onChange={toggleDarkMode}
+                    size={25}
+                  />
+                </div>
+              </Tooltip>
+              <Tooltip title="Select Agent Type">
+                <Select<AgentType>
+                  value={agentType}
+                  onChange={setAgentType}
+                  disabled={isSending}
+                  style={{ width: 120 }}
+                  options={[
+                    { value: "llm", label: "LLM" },
+                    { value: "react", label: "ReACT" },
+                    { value: "multi", label: "Multi-Agent" },
+                  ]}
+                />
+              </Tooltip>
+              <Tooltip title="Export Chat to JSON">
+                <Button
+                  icon={<DownloadOutlined />}
+                  onClick={handleExportChat}
+                  disabled={messages.length === 0}
+                  onMouseDown={(e) => e.preventDefault()}
+                />
+              </Tooltip>
+              <Tooltip title="Import Chat from JSON">
+                <Button
+                  icon={<UploadOutlined />}
+                  onClick={() => document.getElementById('chat-import-input')?.click()}
+                  onMouseDown={(e) => e.preventDefault()}
+                />
+              </Tooltip>
+              <input
+                id="chat-import-input"
+                type="file"
+                accept="application/json,.json"
+                style={{ display: 'none' }}
+                onChange={handleImportChat}
               />
-              <Select<AgentType>
-                value={agentType}
-                onChange={setAgentType}
-                disabled={isSending}
-                style={{ width: 120 }}
-                options={[
-                  { value: "llm", label: "LLM" },
-                  { value: "react", label: "ReACT" },
-                  { value: "multi", label: "Multi-Agent" },
-                ]}
-              />
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={clearChat}
-                title="Clear Chat"
-                onMouseDown={(e) => e.preventDefault()}
-              />
+              <Tooltip title="Clear Chat">
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={clearChat}
+                  onMouseDown={(e) => e.preventDefault()}
+                />
+              </Tooltip>
             </div>
           </div>
         </div>
