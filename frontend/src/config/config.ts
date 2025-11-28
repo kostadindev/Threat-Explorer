@@ -30,20 +30,22 @@ export const UI_CONFIG: Config = {
   inputPlaceholder: "Ask about Threat Explorer",
   maxInputLength: 256,
   defaultPrompts: [
-    "Current project?",
-    "What's Recursive QA?",
-    "Formal ML coursework?",
-    "Explain Deep Gestures",
+    "Attack type distribution",
+    "Attack severity breakdown",
+    "Recent malware patterns in a pie",
+    "Attacks by source IP in a bar",
   ],
   chatDescription: `
-## Hi! I'm Threat Explorer @spin[🤖]
+## Welcome to Threat Explorer @spin[🛡️]
 
-I'm here to chat about my work and expertise. Feel free to ask me about:
+Your cybersecurity analysis assistant with access to real attack data. Ask me about:
 
-* My projects and technical experience
-* My work history and achievements
+* Attack statistics and patterns from our database
+* Security threats and vulnerability analysis
+* Attack trends by type, severity, or source
+* Security best practices and recommendations
 
-Try one of the suggested prompts below or ask me anything!
+Try one of the suggested prompts below or ask me anything about cybersecurity!
   `.trim(),
   features: {
     enableParticles: true,
@@ -65,4 +67,9 @@ Try one of the suggested prompts below or ask me anything!
 export const DEFAULT_MAX_INPUT_LENGTH = 256;
 export const DEFAULT_NAME = "AI Assistant";
 export const DEFAULT_INPUT_PLACEHOLDER = "Ask me anything...";
-export const DEFAULT_PROMPTS = ["Tell me about yourself", "What can you do?"]; 
+export const DEFAULT_PROMPTS = [
+  "Attack type distribution",
+  "Attack severity breakdown",
+  "Recent malware patterns",
+  "Attacks by source IP",
+]; 
