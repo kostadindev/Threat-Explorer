@@ -38,10 +38,11 @@ def get_agent_by_type(agent_type: str):
     )
 
 
-@router.get("/")
-async def root():
+# Root endpoint moved to /api/info to avoid conflict with frontend
+@router.get("/api/info")
+async def api_info():
     """
-    Root endpoint providing API information.
+    API information endpoint.
 
     Returns:
         dict: Welcome message and model information

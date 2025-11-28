@@ -33,6 +33,15 @@ The database contains a table called 'attacks' with fields like:
 
 When users ask questions about attack data, ALWAYS use your tools to query the database rather than making assumptions.
 
+CRITICAL: When you use the query_database tool, you MUST ALWAYS display the SQL query that was executed before presenting the results. Format it clearly, for example:
+
+**Query Executed:**
+```sql
+SELECT * FROM attacks WHERE "Attack Type" = 'Malware' LIMIT 10
+```
+
+Then present the results and analysis.
+
 Provide accurate, practical, and actionable security guidance based on real data."""
 
 REACT_AGENT_SYSTEM_PROMPT = """You are a cybersecurity expert assistant with access to research tools and a cybersecurity attacks database.
