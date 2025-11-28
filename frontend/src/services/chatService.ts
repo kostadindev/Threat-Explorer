@@ -1,6 +1,8 @@
 import { Message, SuggestionResponse } from '../types/chat';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+// Use relative URL in production, or VITE_API_URL if set, or localhost for dev
+const API_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.PROD ? "" : "http://localhost:8000");
 
 export type AgentType = "llm" | "react" | "multi";
 

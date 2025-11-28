@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  base: '/', // Use relative paths for production
   server: {
     host: true, // crucial for Docker: allows binding to 0.0.0.0
     port: 5173, // explicit port helps with Docker/Compose
@@ -14,6 +15,18 @@ export default defineConfig({
     ],
     headers: {
       'ngrok-skip-browser-warning': 'true'
+    }
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    // Ensure relative paths for production
+    rollupOptions: {
+      output: {
+        assetFileNames: 'assets/[name].[hash].[ext]',
+        chunkFileNames: 'assets/[name].[hash].js',
+        entryFileNames: 'assets/[name].[hash].js'
+      }
     }
   }
 });
