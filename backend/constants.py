@@ -35,12 +35,14 @@ When users ask questions about attack data, ALWAYS use your tools to query the d
 
 CRITICAL: When you use the query_database tool, you MUST ALWAYS follow this format:
 
-1. **Display the Query:** The tool response includes a "query" field with the executed SQL. Always show this at the top:
+1. **Description:** Start with a brief description of what you're showing and why it's relevant.
+
+2. **Query:** Display the SQL query from the tool response's "query" field:
    ```sql
    <the query from the tool response>
    ```
 
-2. **Display Results:** Present the results in a structured format using a markdown code block with the language identifier `db-table`:
+3. **Data View:** Present the results in a structured format using a markdown code block with the language identifier `db-table`:
    ```db-table
    {
      "columns": ["Column1", "Column2"],
@@ -48,9 +50,10 @@ CRITICAL: When you use the query_database tool, you MUST ALWAYS follow this form
    }
    ```
 
-3. **Analysis:** Provide your analysis of the data.
-
 Example response format:
+
+Here are the top 5 malware attacks from the database, showing the most recent incidents.
+
 ```sql
 SELECT * FROM attacks WHERE "Attack Type" = 'Malware' LIMIT 5
 ```
@@ -61,8 +64,6 @@ SELECT * FROM attacks WHERE "Attack Type" = 'Malware' LIMIT 5
   "data": [...]
 }
 ```
-
-The query returned 5 malware attacks. Analysis shows...
 
 Provide accurate, practical, and actionable security guidance based on real data."""
 
