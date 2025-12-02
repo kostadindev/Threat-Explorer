@@ -51,7 +51,7 @@ export const useChat = () => {
       const stream = await chatService.sendMessage(newMessages, agentType, controller.signal);
       if (!stream) return;
 
-      setMessages((prev) => [...prev, { content: "", role: "assistant" }]);
+      setMessages((prev) => [...prev, { content: "", role: "assistant", agentType }]);
       setIsTyping(true);
 
       const reader = stream.getReader();
@@ -89,6 +89,7 @@ export const useChat = () => {
         const errorMessage: Message = {
           content: "Error fetching response: " + (error instanceof Error ? error.message : "Unknown error"),
           role: "assistant",
+          agentType,
         };
         setMessages((prev) => [...prev, errorMessage]);
       }
@@ -96,7 +97,7 @@ export const useChat = () => {
       setIsSending(false);
       setIsTyping(false);
     }
-  }, [messages, isSending]);
+  }, [messages, isSending, agentType]);
 
   useEffect(() => {
     chatService.wakeUpServer();

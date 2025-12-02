@@ -1,6 +1,7 @@
 export interface Message {
   content: string;
   role: "user" | "system" | "assistant";
+  agentType?: "llm" | "react" | "multi";
 }
 
 export interface ChatError extends Error {
