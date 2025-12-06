@@ -6,58 +6,15 @@ from .base import BaseAgent, Message, AgentResponse
 from tools.database_tool import query_database
 
 
-# Database formatting instructions to be appended to agent prompts
-DATABASE_FORMAT_INSTRUCTIONS = """
-CRITICAL: When presenting database results, you MUST ALWAYS follow this format:
-
-1. **Description:** Start with a brief description of what you're showing and why it's relevant.
-
-2. **Query:** Display the SQL query used:
-   ```sql
-   <the SQL query>
-   ```
-
-3. **Data View:** Present the results in a structured format. Choose the appropriate format based on the data:
-
-   a) For detailed data or multiple columns, use a table format with `db-table`:
-   ```db-table
-   {
-     "columns": ["Column1", "Column2", "Column3"],
-     "data": [{"Column1": "Val1", "Column2": "Val2", "Column3": "Val3"}]
-   }
-   ```
-
-   b) For grouped/aggregated data (e.g., counts, sums, averages by category), use a bar chart format with `db-chart`:
-   ```db-chart
-   {
-     "xKey": "category_column",
-     "yKey": "numeric_column",
-     "title": "Descriptive Chart Title",
-     "data": [{"category_column": "Category1", "numeric_column": 123}]
-   }
-   ```
-
-   c) For distribution/proportion data showing parts of a whole, use a pie chart format with `db-pie`:
-   ```db-pie
-   {
-     "nameKey": "category_column",
-     "valueKey": "numeric_column",
-     "title": "Descriptive Chart Title",
-     "data": [{"category_column": "Category1", "numeric_column": 123}]
-   }
-   ```
-
-Use charts for aggregated data (GROUP BY queries with COUNT, SUM, AVG, etc.) and tables for detailed records. Use pie charts when showing distribution/proportions.
-"""
-
-
 class MultiAgent(BaseAgent):
     """
-    Multi-agent system using CrewAI with a sequential pipeline:
-    Interpreter → Query Builder → Data Retrieval → Analysis → Reporter
+    Simplified multi-agent system using CrewAI with 3 specialized agents:
+    SQL Builder → Security Analyst → Report Formatter
 
-    This implementation uses CrewAI 0.11.2 which doesn't support LangChain tools directly,
-    so database queries are executed by the coordinator and passed through task context.
+    Follows CrewAI best practices:
+    - Focused, specialized agents over generalists
+    - Single-purpose tasks with clear outputs
+    - 80% effort on task design, 20% on agent design
     """
 
     def __init__(self, api_key: str, model: str = "gpt-4o-mini"):
@@ -70,198 +27,152 @@ class MultiAgent(BaseAgent):
         self.agents = self._create_agents()
 
     def _create_agents(self) -> Dict[str, Agent]:
-        """Create the 5-agent pipeline"""
+        """Create 3 specialized agents following best practices"""
 
-        interpreter = Agent(
-            role="Query Interpreter",
-            goal="Understand and clarify the user's security question or request",
-            backstory="""You are an expert at understanding security-related questions and breaking them down into clear, actionable components.
+        sql_builder = Agent(
+            role="SQL Query Specialist for Cybersecurity Databases",
+            goal="Translate security questions into precise, efficient SQL queries for the attacks database",
+            backstory="""You are a database expert who specializes in writing SQL queries for cybersecurity data analysis.
+You have deep knowledge of the attacks database schema with fields like Attack Type, Severity Level, Source IP Address,
+Destination IP Address, Protocol, Timestamp, and more.
 
-You specialize in identifying:
-- Whether the question requires database queries or general security knowledge
-- The specific type of data or analysis needed
-- Key security concepts and terminology involved
+You excel at understanding what data is needed to answer security questions and crafting efficient SQL queries.
+You always quote column names with spaces using double quotes and include appropriate LIMIT clauses.
 
-Provide a concise interpretation that guides the next agents.""",
-            llm=self.llm,
-            verbose=False,
-            allow_delegation=False
-        )
-
-        query_builder = Agent(
-            role="Query Builder",
-            goal="Build structured SQL queries to retrieve relevant security data from the attacks database",
-            backstory="""You are skilled at translating security questions into specific SQL queries for the cybersecurity attacks database.
-
-The database contains a table called 'attacks' with fields like:
-- Timestamp, Source IP Address, Destination IP Address
-- Attack Type (Malware, DDoS, Intrusion, etc.)
-- Severity Level (Low, Medium, High, Critical)
-- Protocol, Source Port, Destination Port
-- Malware Indicators, Anomaly Scores
-- And many more fields
-
-IMPORTANT:
-- Column names with spaces MUST be quoted with double quotes in SQL queries
-- Example: SELECT "Attack Type", "Severity Level" FROM attacks
-- Always include appropriate LIMIT clauses (e.g., LIMIT 10, LIMIT 50)
-
-If the question requires database data, provide ONLY the SQL query to execute.
-If the question is general security knowledge, state "NO DATABASE QUERY NEEDED".""",
-            llm=self.llm,
-            verbose=False,
-            allow_delegation=False
-        )
-
-        data_retrieval = Agent(
-            role="Data Retrieval Specialist",
-            goal="Present database query results in structured format",
-            backstory="""You excel at organizing and presenting database query results.
-
-When you receive database results, present them clearly with:
-1. The SQL query that was executed
-2. The number of results returned
-3. The data in a clean, structured format
-
-If no database query was needed, simply pass that information forward.""",
+When a question doesn't require database data, you clearly state 'NO_DATABASE_QUERY_NEEDED'.""",
             llm=self.llm,
             verbose=False,
             allow_delegation=False
         )
 
         analyst = Agent(
-            role="Security Analyst",
-            goal="Analyze security data and identify threats, vulnerabilities, patterns, and insights",
-            backstory="""You are a seasoned security analyst who can identify critical insights from security data and threat intelligence.
+            role="Cybersecurity Threat Analyst",
+            goal="Analyze security data to identify threats, patterns, and actionable insights",
+            backstory="""You are a seasoned cybersecurity analyst with 15+ years of experience in threat intelligence
+and incident response. You excel at identifying patterns in attack data, assessing risk levels, and understanding
+attacker tactics, techniques, and procedures (TTPs).
 
-You specialize in:
-- Identifying patterns and trends in attack data
-- Assessing severity and risk levels
-- Understanding attack vectors and techniques
-- Providing context for security findings
-
-Analyze the data provided and extract meaningful security insights.""",
+You believe in data-driven security analysis and always connect findings to practical security implications.
+You can quickly spot trends, anomalies, and critical insights that others might miss.""",
             llm=self.llm,
             verbose=False,
             allow_delegation=False
         )
 
-        reporter = Agent(
-            role="Security Reporter",
-            goal="Create clear, actionable security reports with properly formatted data visualizations",
-            backstory=f"""You specialize in communicating security findings in a clear, structured way with actionable recommendations.
+        formatter = Agent(
+            role="Security Report Formatter specializing in Data Visualization",
+            goal="Present security findings in clear, well-formatted reports with proper data visualizations",
+            backstory="""You are a technical writer specializing in cybersecurity reporting with expertise in data visualization.
+You know exactly how to format database results for maximum clarity and impact.
 
-You are a cybersecurity expert assistant specializing in threat analysis and security best practices.
+CRITICAL FORMATTING RULES YOU ALWAYS FOLLOW:
 
-{DATABASE_FORMAT_INSTRUCTIONS}
+For database results, you MUST use this exact format:
 
-When presenting database results, ALWAYS use the appropriate format (db-table, db-chart, or db-pie) based on the data type.
-Provide accurate, practical, and actionable security guidance based on real data.""",
+1. Brief description of what the data shows
+2. SQL query in a ```sql code block
+3. Data formatted as:
+   - `db-table` for detailed records with multiple columns
+   - `db-chart` for aggregated data (GROUP BY with COUNT/SUM/AVG)
+   - `db-pie` for distribution/proportion data
+
+db-table format:
+```db-table
+{
+  "columns": ["Column1", "Column2"],
+  "data": [{"Column1": "value", "Column2": "value"}]
+}
+```
+
+db-chart format:
+```db-chart
+{
+  "xKey": "category_column",
+  "yKey": "numeric_column",
+  "title": "Descriptive Title",
+  "data": [{"category_column": "Cat1", "numeric_column": 123}]
+}
+```
+
+db-pie format:
+```db-pie
+{
+  "nameKey": "category_column",
+  "valueKey": "numeric_column",
+  "title": "Descriptive Title",
+  "data": [{"category_column": "Cat1", "numeric_column": 123}]
+}
+```
+
+You always include actionable recommendations based on the findings.""",
             llm=self.llm,
             verbose=False,
             allow_delegation=False
         )
 
         return {
-            "interpreter": interpreter,
-            "query_builder": query_builder,
-            "data_retrieval": data_retrieval,
+            "sql_builder": sql_builder,
             "analyst": analyst,
-            "reporter": reporter
+            "formatter": formatter
         }
 
     def _create_tasks(self, query: str, db_results: str = None) -> List[Task]:
-        """Create sequential tasks for the pipeline
+        """Create focused, single-purpose tasks following best practices"""
 
-        Args:
-            query: User's question
-            db_results: Database results from coordinator (if any)
-        """
+        # Task 1: SQL Query Building
+        sql_task = Task(
+            description=f"""Analyze this security question and determine if database data is needed: {query}
 
-        task_interpret = Task(
-            description=f"""Interpret this security question: {query}
-
-Determine:
-1. Is this a database query question or general security question?
-2. What specific information is being requested?
-3. What type of analysis is needed?
-
-Keep your response concise (2-3 sentences).""",
-            expected_output="A clear, concise interpretation of the question",
-            agent=self.agents["interpreter"]
-        )
-
-        task_query_build = Task(
-            description="""Based on the interpretation, determine if SQL queries are needed.
-
-If database data is needed:
-- Provide ONLY the SQL query to execute
+If database data IS needed:
+- Output ONLY the SQL query (no explanation)
 - Quote column names with spaces using double quotes
-- Include appropriate LIMIT clause
+- Include LIMIT clause (10-50 depending on question)
 
-If no database is needed:
-- Respond with exactly: "NO DATABASE QUERY NEEDED"
+If database data is NOT needed (general security knowledge):
+- Output exactly: NO_DATABASE_QUERY_NEEDED
 
-Be concise - only output the query or the "NO DATABASE QUERY NEEDED" message.""",
-            expected_output="A SQL query OR 'NO DATABASE QUERY NEEDED'",
-            agent=self.agents["query_builder"]
+Be concise - output only the query or NO_DATABASE_QUERY_NEEDED.""",
+            expected_output="A single SQL query OR the text 'NO_DATABASE_QUERY_NEEDED'",
+            agent=self.agents["sql_builder"]
         )
 
-        # If we have db_results, include them in the data retrieval task
-        data_context = ""
-        if db_results:
-            data_context = f"\n\nDatabase query results:\n{db_results}"
+        # Task 2: Security Analysis
+        analysis_context = f"\n\nDatabase results:\n{db_results}" if db_results else ""
 
-        task_data_retrieval = Task(
-            description=f"""Present the data retrieval results.{data_context}
+        analysis_task = Task(
+            description=f"""Analyze the security question and provide expert insights: {query}{analysis_context}
 
-If database results are provided above:
-- Summarize what data was retrieved
-- Note the number of records
+Your analysis should:
+1. Identify key security patterns, threats, or concepts
+2. Assess risk levels and severity where applicable
+3. Provide security context and implications
+4. Focus on actionable insights
 
-If no database query was needed:
-- State that general security knowledge will be used
-
-Keep it brief (2-3 sentences).""",
-            expected_output="Summary of data retrieval results",
-            agent=self.agents["data_retrieval"]
-        )
-
-        task_analysis = Task(
-            description="""Analyze the information and provide security insights.
-
-If database results were provided:
-- Identify patterns and trends
-- Assess severity and risk levels
-- Provide security context
-
-If no database results:
-- Provide general security expertise
-
-Focus on actionable insights.""",
-            expected_output="Security analysis with key findings and insights",
+Keep your analysis concise but thorough (2-4 paragraphs).""",
+            expected_output="A focused security analysis with key insights and implications",
             agent=self.agents["analyst"]
         )
 
-        task_report = Task(
-            description=f"""Create a comprehensive security report answering the user's question.
+        # Task 3: Report Formatting
+        format_task = Task(
+            description=f"""Create a well-formatted security report that answers: {query}
 
-CRITICAL: If database results are available, you MUST format them properly:
-1. Include a description
-2. Show the SQL query in a ```sql block
-3. Format data as db-table, db-chart, or db-pie based on type:
-   - Use db-table for detailed records
-   - Use db-chart for aggregated data (GROUP BY with COUNT/SUM/AVG)
-   - Use db-pie for distribution/proportion data
+Use the analyst's insights to create a complete response.
 
-The original question was: {query}
+CRITICAL: If database results are present, you MUST format them using db-table, db-chart, or db-pie:
+- Include a brief description
+- Show the SQL query in a ```sql block
+- Format the data appropriately:
+  * db-table: for detailed records
+  * db-chart: for GROUP BY aggregations
+  * db-pie: for distributions/proportions
 
-Provide a complete, well-formatted answer with actionable recommendations.""",
-            expected_output="A comprehensive, well-formatted security report",
-            agent=self.agents["reporter"]
+Always end with 2-3 actionable recommendations.""",
+            expected_output="A complete, well-formatted security report with visualizations (if applicable) and recommendations",
+            agent=self.agents["formatter"]
         )
 
-        return [task_interpret, task_query_build, task_data_retrieval, task_analysis, task_report]
+        return [sql_task, analysis_task, format_task]
 
     def chat(
         self,
@@ -271,18 +182,11 @@ Provide a complete, well-formatted answer with actionable recommendations.""",
         **kwargs
     ) -> AgentResponse:
         """
-        Process messages using CrewAI sequential pipeline with database coordination.
+        Process messages using simplified 3-agent CrewAI pipeline.
 
-        Args:
-            messages: Conversation history
-            temperature: Sampling temperature
-            max_tokens: Maximum tokens to generate
-            **kwargs: Additional parameters
-
-        Returns:
-            AgentResponse with the final report
+        Single-phase execution with coordinator-managed database queries.
         """
-        # Extract the last user message
+        # Extract user message
         user_message = None
         for msg in reversed(messages):
             if msg.role == "user":
@@ -297,50 +201,36 @@ Provide a complete, well-formatted answer with actionable recommendations.""",
             )
 
         try:
-            # Update LLM temperature
+            # Update LLM settings
             self.llm.temperature = temperature
             self.llm.max_tokens = max_tokens
 
-            # Step 1: Run interpreter and query builder to determine if DB query is needed
-            initial_tasks = [
-                Task(
-                    description=f"Interpret this security question: {user_message}",
-                    expected_output="Interpretation of the question",
-                    agent=self.agents["interpreter"]
-                ),
-                Task(
-                    description="Determine if a SQL query is needed. If yes, provide ONLY the SQL query. If no, respond with 'NO DATABASE QUERY NEEDED'.",
-                    expected_output="SQL query or 'NO DATABASE QUERY NEEDED'",
-                    agent=self.agents["query_builder"]
-                )
-            ]
+            # Phase 1: Get SQL query from SQL Builder
+            sql_task = Task(
+                description=f"Determine if a SQL query is needed for: {user_message}. Output ONLY the query or 'NO_DATABASE_QUERY_NEEDED'.",
+                expected_output="SQL query or NO_DATABASE_QUERY_NEEDED",
+                agent=self.agents["sql_builder"]
+            )
 
-            initial_crew = Crew(
-                agents=[self.agents["interpreter"], self.agents["query_builder"]],
-                tasks=initial_tasks,
+            sql_crew = Crew(
+                agents=[self.agents["sql_builder"]],
+                tasks=[sql_task],
                 process=Process.sequential,
                 verbose=False
             )
 
-            initial_result = initial_crew.kickoff()
-            query_builder_output = str(initial_result).strip()
+            sql_result = str(sql_crew.kickoff()).strip()
 
-            # Step 2: Execute database query if needed
+            # Phase 2: Execute database query if needed
             db_results = None
-            if "NO DATABASE QUERY NEEDED" not in query_builder_output.upper():
-                # Extract SQL query from the output
-                sql_query = query_builder_output
-
-                # Clean up the query
-                sql_query = sql_query.replace("```sql", "").replace("```", "").strip()
-
-                # Execute the query
+            if "NO_DATABASE_QUERY_NEEDED" not in sql_result.upper():
+                sql_query = sql_result.replace("```sql", "").replace("```", "").strip()
                 try:
                     db_results = query_database(sql_query)
                 except Exception as e:
-                    db_results = f"Error executing query: {str(e)}"
+                    db_results = f'{{"error": "Query failed: {str(e)}"}}'
 
-            # Step 3: Run the full pipeline with database results
+            # Phase 3: Run full analysis and formatting pipeline
             tasks = self._create_tasks(user_message, db_results)
 
             crew = Crew(
@@ -358,8 +248,9 @@ Provide a complete, well-formatted answer with actionable recommendations.""",
                 usage={},
                 metadata={
                     "agent_type": "multi",
-                    "pipeline": "interpreter→query_builder→data_retrieval→analyst→reporter",
+                    "pipeline": "sql_builder→analyst→formatter",
                     "framework": "crewai",
+                    "agents_count": 3,
                     "database_query_executed": db_results is not None
                 }
             )
@@ -383,23 +274,8 @@ Provide a complete, well-formatted answer with actionable recommendations.""",
         max_tokens: int = 2000,
         **kwargs
     ):
-        """
-        Process messages using CrewAI pipeline with simulated streaming.
-        Note: CrewAI doesn't support true streaming, so we'll return the result in chunks.
-
-        Args:
-            messages: Conversation history
-            temperature: Sampling temperature
-            max_tokens: Maximum tokens to generate
-            **kwargs: Additional parameters
-
-        Yields:
-            Chunks of the response
-        """
-        # Get the complete response
+        """Stream response in chunks (CrewAI doesn't support native streaming)"""
         response = self.chat(messages, temperature, max_tokens, **kwargs)
-
-        # Stream it in chunks
         content = response.message.content
         chunk_size = 30
 

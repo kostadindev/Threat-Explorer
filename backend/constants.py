@@ -23,13 +23,40 @@ Available Tools:
 1. get_database_info - Get schema and metadata about the attacks database (table name, columns, row count)
 2. query_database - Execute SQL queries on the attacks database
 
-The database contains a table called 'attacks' with fields like:
-- Timestamp, Source IP Address, Destination IP Address
-- Attack Type (Malware, DDoS, Intrusion, etc.)
-- Severity Level (Low, Medium, High, Critical)
-- Protocol, Source Port, Destination Port
-- Malware Indicators, Anomaly Scores
-- And many more fields
+The database contains a table called 'attacks' with the following fields:
+
+Network Information:
+- Timestamp: When the attack occurred
+- Source IP Address, Destination IP Address
+- Source Port, Destination Port
+- Protocol: Network protocol (TCP, UDP, ICMP, etc.)
+- Packet Length, Packet Type
+- Traffic Type: Type of network traffic (HTTP, DNS, FTP, etc.)
+- Network Segment: Network location of the attack
+
+Attack Details:
+- Attack Type: Type of attack (Malware, DDoS, Intrusion, Reconnaissance, etc.)
+- Attack Signature: Specific signature of the attack
+- Severity Level: Attack severity (Low, Medium, High, Critical)
+- Malware Indicators: Indicators of malware presence
+- Anomaly Scores: Numerical scores indicating anomalous behavior
+
+Response & Logging:
+- Action Taken: Actions taken in response to the attack
+- Alerts/Warnings: Generated alerts and warnings
+- Firewall Logs: Firewall-related log data
+- IDS/IPS Alerts: Intrusion Detection/Prevention System alerts
+- Log Source: Source of the log entry
+
+Context:
+- Payload Data: Network payload information
+- User Information: User-related data
+- Device Information: Device details
+- Geo-location Data: Geographic information
+- Proxy Information: Proxy-related data
+
+IMPORTANT: Column names with spaces MUST be enclosed in double quotes in SQL queries.
+Example: SELECT "Attack Type", "Severity Level" FROM attacks WHERE "Source Port" > 1024
 
 When users ask questions about attack data, ALWAYS use your tools to query the database rather than making assumptions.
 
@@ -146,13 +173,40 @@ Available Tools:
 - QueryDatabase: Execute SQL queries on the cybersecurity attacks database
 - GetDatabaseInfo: Get schema and metadata about the attacks database (table name, columns, row count)
 
-The database contains a table called 'attacks' with fields like:
-- Timestamp, Source IP Address, Destination IP Address
-- Attack Type (Malware, DDoS, Intrusion, etc.)
-- Severity Level (Low, Medium, High, Critical)
-- Protocol, Source Port, Destination Port
-- Malware Indicators, Anomaly Scores
-- And many more fields
+The database contains a table called 'attacks' with the following fields:
+
+Network Information:
+- Timestamp: When the attack occurred
+- Source IP Address, Destination IP Address
+- Source Port, Destination Port
+- Protocol: Network protocol (TCP, UDP, ICMP, etc.)
+- Packet Length, Packet Type
+- Traffic Type: Type of network traffic (HTTP, DNS, FTP, etc.)
+- Network Segment: Network location of the attack
+
+Attack Details:
+- Attack Type: Type of attack (Malware, DDoS, Intrusion, Reconnaissance, etc.)
+- Attack Signature: Specific signature of the attack
+- Severity Level: Attack severity (Low, Medium, High, Critical)
+- Malware Indicators: Indicators of malware presence
+- Anomaly Scores: Numerical scores indicating anomalous behavior
+
+Response & Logging:
+- Action Taken: Actions taken in response to the attack
+- Alerts/Warnings: Generated alerts and warnings
+- Firewall Logs: Firewall-related log data
+- IDS/IPS Alerts: Intrusion Detection/Prevention System alerts
+- Log Source: Source of the log entry
+
+Context:
+- Payload Data: Network payload information
+- User Information: User-related data
+- Device Information: Device details
+- Geo-location Data: Geographic information
+- Proxy Information: Proxy-related data
+
+IMPORTANT: Column names with spaces MUST be enclosed in double quotes in SQL queries.
+Example: SELECT "Attack Type", "Severity Level" FROM attacks WHERE "Source Port" > 1024
 
 CRITICAL: When you use the QueryDatabase tool, you MUST ALWAYS follow this format:
 
