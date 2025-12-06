@@ -260,7 +260,7 @@ const ChatComponent: React.FC = () => {
                   ]}
                 />
               </Tooltip>
-              <Tooltip title={showVisualizations ? "Hide Visualizations" : "Show Visualizations"}>
+              <Tooltip title={showVisualizations ? "Disable Visualizations" : "Enable Visualizations"}>
                 <Button
                   icon={showVisualizations ? <BarChartOutlined /> : <EyeInvisibleOutlined />}
                   onClick={() => setShowVisualizations(!showVisualizations)}
@@ -350,7 +350,7 @@ const ChatComponent: React.FC = () => {
                   onScroll={() => {}}
                   isTyping={isTyping}
                   onMessagesLoad={onMessagesLoad}
-                  chatDescription={getChatDescription(agentType)}
+                  chatDescription={getChatDescription(agentType, showVisualizations)}
                 />
               </div>
               {UI_CONFIG?.features?.enableHexagons && (
