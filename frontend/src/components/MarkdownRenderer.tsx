@@ -184,7 +184,7 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
         return <span>{children}</span>;
       },
     }),
-    [token.colorFillAlter, syntaxTheme]
+    [token.colorFillAlter, syntaxTheme, isDarkMode, token]
   );
 
   // Process the content to replace @spin[] tags with HTML

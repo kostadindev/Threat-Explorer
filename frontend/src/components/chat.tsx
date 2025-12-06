@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, memo } from "react";
 import { Button, Input, Layout, theme, Select, Tooltip } from "antd";
-import { SendOutlined, ReloadOutlined, DownloadOutlined, UploadOutlined } from "@ant-design/icons";
+import { SendOutlined, ReloadOutlined, DownloadOutlined, UploadOutlined, BarChartOutlined, EyeInvisibleOutlined } from "@ant-design/icons";
 import { DarkModeSwitch } from "react-toggle-dark-mode";
 import { useChat } from "../hooks/useChat";
 import type { AgentType } from "../hooks/useChat";
@@ -15,6 +15,7 @@ import {
   DEFAULT_NAME,
   DEFAULT_INPUT_PLACEHOLDER,
   DEFAULT_MAX_INPUT_LENGTH,
+  getChatDescription,
 } from "../config/config";
 
 const { Header } = Layout;
@@ -117,6 +118,8 @@ const ChatComponent: React.FC = () => {
     suggestions,
     agentType,
     setAgentType,
+    showVisualizations,
+    setShowVisualizations,
     clearChat,
     sendMessage,
     onMessagesLoad,
@@ -257,6 +260,14 @@ const ChatComponent: React.FC = () => {
                   ]}
                 />
               </Tooltip>
+              <Tooltip title={showVisualizations ? "Hide Visualizations" : "Show Visualizations"}>
+                <Button
+                  icon={showVisualizations ? <BarChartOutlined /> : <EyeInvisibleOutlined />}
+                  onClick={() => setShowVisualizations(!showVisualizations)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  type={showVisualizations ? "default" : "dashed"}
+                />
+              </Tooltip>
               <Tooltip title="Export Chat to JSON">
                 <Button
                   icon={<DownloadOutlined />}
@@ -339,7 +350,7 @@ const ChatComponent: React.FC = () => {
                   onScroll={() => {}}
                   isTyping={isTyping}
                   onMessagesLoad={onMessagesLoad}
-                  chatDescription={UI_CONFIG.chatDescription}
+                  chatDescription={getChatDescription(agentType)}
                 />
               </div>
               {UI_CONFIG?.features?.enableHexagons && (

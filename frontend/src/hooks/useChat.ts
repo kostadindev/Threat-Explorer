@@ -6,13 +6,28 @@ const CHAT_HISTORY_KEY = "chat_history";
 
 export type AgentType = "llm" | "react" | "multi";
 
+// Read initial settings from URL
+const getInitialSettings = () => {
+  const params = new URLSearchParams(window.location.search);
+  const agent = params.get('agent') as AgentType | null;
+  const viz = params.get('viz');
+
+  return {
+    agentType: (agent && ['llm', 'react', 'multi'].includes(agent)) ? agent : 'llm' as AgentType,
+    showVisualizations: viz === null ? true : viz === 'true'
+  };
+};
+
 export const useChat = () => {
+  const initialSettings = getInitialSettings();
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [agentType, setAgentType] = useState<AgentType>("llm");
+  const [agentType, setAgentType] = useState<AgentType>(initialSettings.agentType);
+  const [showVisualizations, setShowVisualizations] = useState(initialSettings.showVisualizations);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleMessagesLoad = useCallback((loadedMessages: Message[]) => {
@@ -48,7 +63,7 @@ export const useChat = () => {
     abortControllerRef.current = controller;
 
     try {
-      const stream = await chatService.sendMessage(newMessages, agentType, controller.signal);
+      const stream = await chatService.sendMessage(newMessages, agentType, showVisualizations, controller.signal);
       if (!stream) return;
 
       setMessages((prev) => [...prev, { content: "", role: "assistant", agentType }]);
@@ -74,14 +89,6 @@ export const useChat = () => {
         });
       }
 
-      const suggestions = await chatService.getSuggestions([
-        ...newMessages,
-        {
-          content: messages[messages.length - 1]?.content || "Let me know how else I can help.",
-          role: "assistant",
-        },
-      ]);
-      setSuggestions(suggestions);
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
         console.log("Request was aborted");
@@ -97,7 +104,17 @@ export const useChat = () => {
       setIsSending(false);
       setIsTyping(false);
     }
-  }, [messages, isSending, agentType]);
+  }, [messages, isSending, agentType, showVisualizations]);
+
+  // Update URL when settings change
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('agent', agentType);
+    params.set('viz', String(showVisualizations));
+
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, '', newUrl);
+  }, [agentType, showVisualizations]);
 
   useEffect(() => {
     chatService.wakeUpServer();
@@ -112,6 +129,8 @@ export const useChat = () => {
     suggestions,
     agentType,
     setAgentType,
+    showVisualizations,
+    setShowVisualizations,
     clearChat,
     sendMessage,
     onMessagesLoad: handleMessagesLoad,

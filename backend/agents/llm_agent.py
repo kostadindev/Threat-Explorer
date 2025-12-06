@@ -5,7 +5,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, ToolMessage
 
 from .base import BaseAgent, Message, AgentResponse
-from constants import LLM_AGENT_SYSTEM_PROMPT
+from constants import LLM_AGENT_SYSTEM_PROMPT, get_system_prompt
 from tools.database_tool import query_database, get_database_info
 
 
@@ -69,6 +69,7 @@ class LLMAgent(BaseAgent):
         self,
         messages: List[Message],
         temperature: float = 1,
+        enable_visualizations: bool = True,
         **kwargs
     ) -> AgentResponse:
         """
@@ -77,6 +78,7 @@ class LLMAgent(BaseAgent):
         Args:
             messages: Conversation history
             temperature: Sampling temperature
+            enable_visualizations: Whether to enable database visualizations
             max_tokens: Maximum tokens to generate
 
         Returns:
@@ -87,11 +89,13 @@ class LLMAgent(BaseAgent):
         print("🤖 LLM AGENT - FUNCTION CALLING MODE", flush=True)
         print("=" * 80, flush=True)
         print(f"🔧 Available tools: {[tool['function']['name'] for tool in self.tools]}", flush=True)
+        print(f"📊 Visualizations: {'enabled' if enable_visualizations else 'disabled'}", flush=True)
         print("=" * 80, flush=True)
         print("", flush=True)
 
         # Extract system prompts and conversation messages separately
-        system_messages = [SystemMessage(content=LLM_AGENT_SYSTEM_PROMPT)]
+        system_prompt = get_system_prompt(LLM_AGENT_SYSTEM_PROMPT, enable_visualizations)
+        system_messages = [SystemMessage(content=system_prompt)]
         conversation_messages = []
 
         for msg in messages:
@@ -201,6 +205,7 @@ class LLMAgent(BaseAgent):
         messages: List[Message],
         temperature: float = 0.7,
         max_tokens: int = 2000,
+        enable_visualizations: bool = True,
         **kwargs
     ):
         """
@@ -210,6 +215,7 @@ class LLMAgent(BaseAgent):
             messages: Conversation history
             temperature: Sampling temperature
             max_tokens: Maximum tokens to generate
+            enable_visualizations: Whether to enable database visualizations
 
         Yields:
             Chunks of the response as they arrive
@@ -217,13 +223,15 @@ class LLMAgent(BaseAgent):
         print("", flush=True)
         print("=" * 80, flush=True)
         print("🌊 LLM AGENT - STREAMING MODE WITH TOOL SUPPORT", flush=True)
+        print(f"📊 Visualizations: {'enabled' if enable_visualizations else 'disabled'}", flush=True)
         print("=" * 80, flush=True)
         print(f"🔧 Available tools: {[tool['function']['name'] for tool in self.tools]}", flush=True)
         print("=" * 80, flush=True)
         print("", flush=True)
 
         # Extract system prompts and conversation messages separately
-        system_messages = [SystemMessage(content=LLM_AGENT_SYSTEM_PROMPT)]
+        system_prompt = get_system_prompt(LLM_AGENT_SYSTEM_PROMPT, enable_visualizations)
+        system_messages = [SystemMessage(content=system_prompt)]
         conversation_messages = []
 
         for msg in messages:

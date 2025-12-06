@@ -27,6 +27,7 @@ class ChatRequest(BaseModel):
     model: str = Field(default="gpt-4o-mini", examples=["gpt-4o-mini"])
     temperature: float = Field(default=0.7, examples=[0.7])
     max_tokens: int = Field(default=2000, examples=[2000])
+    enable_visualizations: bool = Field(default=True, description="Whether to generate database visualizations (tables, charts, etc.)")
 
 
 class ChatResponse(BaseModel):

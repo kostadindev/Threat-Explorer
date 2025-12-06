@@ -2,6 +2,14 @@
 Constants and configuration values for the Threat Explorer backend.
 """
 
+# Text appended to prompts when visualizations are disabled
+TEXT_ONLY_INSTRUCTION = """
+
+IMPORTANT: Visualizations are currently DISABLED.
+When presenting database query results, format them as clear, readable text instead of using db-table, db-chart, or db-pie formats.
+Present data in bullet points, numbered lists, or simple text summaries.
+Do NOT use any JSON or structured data formats for visualization."""
+
 # System Prompts for Different Agent Types
 
 LLM_AGENT_SYSTEM_PROMPT = """You are a cybersecurity expert assistant specializing in threat analysis and security best practices.
@@ -348,3 +356,20 @@ SPECIALIST_KEYWORDS = {
         "iso"
     ]
 }
+
+
+# Helper functions to get prompts with visualization control
+def get_system_prompt(base_prompt: str, enable_visualizations: bool = True) -> str:
+    """
+    Get system prompt with optional text-only instruction.
+
+    Args:
+        base_prompt: The base system prompt
+        enable_visualizations: Whether to enable database visualizations
+
+    Returns:
+        System prompt with TEXT_ONLY_INSTRUCTION appended if visualizations disabled
+    """
+    if enable_visualizations:
+        return base_prompt
+    return base_prompt + TEXT_ONLY_INSTRUCTION

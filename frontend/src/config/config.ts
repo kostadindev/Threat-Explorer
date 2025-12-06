@@ -32,7 +32,6 @@ export const UI_CONFIG: Config = {
   defaultPrompts: [
     "Show me the top 10 attack types",
     "What protocols are most targeted?",
-    "Critical severity attacks this month",
     "Compare DDoS vs Malware attack frequency",
     "Which source IPs have the most attacks?",
     "Show me attack patterns by network segment",
@@ -40,19 +39,13 @@ export const UI_CONFIG: Config = {
   chatDescription: `
 ## Welcome to Threat Explorer @spin[🛡️]
 
-**AI-Powered Threat Intelligence Platform** with multi-agent analysis capabilities.
+Analyze real cybersecurity attack data through natural language queries.
 
-Explore real attack data through natural language queries. Our specialized AI agents analyze:
-
-* **Attack Patterns** - Distribution by type, severity, protocol, and source
-* **Threat Intelligence** - Malware indicators, anomaly scores, and signatures
-* **Network Analysis** - Traffic patterns, ports, IP addresses, and geographic data
-* **Security Insights** - IDS/IPS alerts, firewall logs, and incident response
-
-**Powered by 3 specialized AI agents:**
-- 🔍 SQL Builder - Translates your questions into precise database queries
-- 🎯 Threat Analyst - Analyzes patterns and identifies security insights
-- 📊 Report Formatter - Presents findings with interactive visualizations
+**What you can explore:**
+* Attack patterns by type, severity, protocol, and source
+* Threat intelligence with malware indicators and anomaly scores
+* Network analysis across IPs, ports, and geographic locations
+* Security insights from IDS/IPS alerts and firewall logs
 
 Try the suggested prompts below or ask anything about cybersecurity threats!
   `.trim(),
@@ -62,15 +55,57 @@ Try the suggested prompts below or ask anything about cybersecurity threats!
   }
 } as const satisfies Config;
 
+// Agent-specific descriptions
+export const AGENT_DESCRIPTIONS = {
+  llm: `
+## Welcome to Threat Explorer @spin[🛡️]
 
+**LLM Agent with Function Calling** - Analyzes attack data using AI-powered database queries.
 
+Query our cybersecurity database using natural language. The LLM agent uses function calling to automatically retrieve and visualize data.
 
+**Capabilities:** Attack analysis • Threat patterns • Security insights • Interactive visualizations
 
+Try the suggested prompts below!
+  `.trim(),
 
+  react: `
+## Welcome to Threat Explorer @spin[🛡️]
 
+**ReACT Agent** - Iterative reasoning with autonomous tool use for deep analysis.
 
+Ask complex questions and watch the agent reason through multiple steps, querying data and building comprehensive answers.
 
+**Capabilities:** Multi-step analysis • Iterative reasoning • Autonomous data retrieval • Detailed insights
 
+Try the suggested prompts below!
+  `.trim(),
+
+  multi: `
+## Welcome to Threat Explorer @spin[🛡️]
+
+**Multi-Agent System** - Collaborative AI powered by 3 specialized agents.
+
+**Agent Pipeline:**
+🔍 **SQL Builder** → Translates questions into database queries
+🎯 **Threat Analyst** → Analyzes patterns and security implications
+📊 **Report Formatter** → Creates visualizations and actionable insights
+
+**Capabilities:** Comprehensive analysis • Expert insights • Professional reports • Interactive charts
+
+Try the suggested prompts below!
+  `.trim(),
+} as const;
+
+/**
+ * Get the appropriate chat description based on the selected agent type
+ */
+export function getChatDescription(agentType?: string): string {
+  if (!agentType || !(agentType in AGENT_DESCRIPTIONS)) {
+    return UI_CONFIG.chatDescription || '';
+  }
+  return AGENT_DESCRIPTIONS[agentType as keyof typeof AGENT_DESCRIPTIONS];
+}
 
 // Default values for optional fields
 export const DEFAULT_MAX_INPUT_LENGTH = 512;
@@ -81,4 +116,4 @@ export const DEFAULT_PROMPTS = [
   "What protocols are most targeted?",
   "Critical severity attacks this month",
   "Compare DDoS vs Malware attack frequency",
-]; 
+];

@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 import sys
-import json
 
 from models import ChatRequest, SuggestionRequest, SuggestionResponse, QueryRequest, QueryResponse, TableInfoResponse
 from config import config
@@ -126,25 +125,29 @@ async def chat(request: ChatRequest):
         # Use the agent's streaming method if available
         if hasattr(agent, 'chat_stream'):
             print(f"🔄 Using streaming response for {request.agent_type} agent", flush=True)
+            print(f"📊 Visualizations: {'enabled' if request.enable_visualizations else 'disabled'}", flush=True)
             print("", flush=True)
 
             return StreamingResponse(
                 agent.chat_stream(
                     messages=request.history,
                     temperature=request.temperature,
-                    max_tokens=request.max_tokens
+                    max_tokens=request.max_tokens,
+                    enable_visualizations=request.enable_visualizations
                 ),
                 media_type="text/plain"
             )
         else:
             # Fallback to non-streaming for agents that don't support it
             print(f"🔄 Using non-streaming response for {request.agent_type} agent", flush=True)
+            print(f"📊 Visualizations: {'enabled' if request.enable_visualizations else 'disabled'}", flush=True)
             print("", flush=True)
 
             response = agent.chat(
                 messages=request.history,
                 temperature=request.temperature,
-                max_tokens=request.max_tokens
+                max_tokens=request.max_tokens,
+                enable_visualizations=request.enable_visualizations
             )
 
             # Log the response
@@ -177,12 +180,9 @@ async def chat(request: ChatRequest):
 
 
 @router.post("/suggest-followups")
-async def suggest_followups(request: SuggestionRequest) -> SuggestionResponse:
+async def suggest_followups(_: SuggestionRequest) -> SuggestionResponse:
     """
     Generate follow-up question suggestions based on chat history.
-
-    Args:
-        request: SuggestionRequest with chat history
 
     Returns:
         SuggestionResponse: List of suggested follow-up questions

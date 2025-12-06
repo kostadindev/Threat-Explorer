@@ -116,7 +116,7 @@ You always include actionable recommendations based on the findings.""",
             "formatter": formatter
         }
 
-    def _create_tasks(self, query: str, db_results: str = None) -> List[Task]:
+    def _create_tasks(self, query: str, db_results: str = None, enable_visualizations: bool = True) -> List[Task]:
         """Create focused, single-purpose tasks following best practices"""
 
         # Task 1: SQL Query Building
@@ -154,21 +154,31 @@ Keep your analysis concise but thorough (2-4 paragraphs).""",
         )
 
         # Task 3: Report Formatting
-        format_task = Task(
-            description=f"""Create a well-formatted security report that answers: {query}
-
-Use the analyst's insights to create a complete response.
-
-CRITICAL: If database results are present, you MUST format them using db-table, db-chart, or db-pie:
+        if enable_visualizations:
+            format_instruction = """CRITICAL: If database results are present, you MUST format them using db-table, db-chart, or db-pie:
 - Include a brief description
 - Show the SQL query in a ```sql block
 - Format the data appropriately:
   * db-table: for detailed records
   * db-chart: for GROUP BY aggregations
-  * db-pie: for distributions/proportions
+  * db-pie: for distributions/proportions"""
+        else:
+            format_instruction = """IMPORTANT: Visualizations are DISABLED.
+If database results are present, present them as clear, readable text:
+- Use bullet points or numbered lists
+- Show the SQL query in a ```sql block
+- Present key findings in simple text summaries
+- Do NOT use db-table, db-chart, or db-pie formats"""
+
+        format_task = Task(
+            description=f"""Create a well-formatted security report that answers: {query}
+
+Use the analyst's insights to create a complete response.
+
+{format_instruction}
 
 Always end with 2-3 actionable recommendations.""",
-            expected_output="A complete, well-formatted security report with visualizations (if applicable) and recommendations",
+            expected_output="A complete, well-formatted security report with data presentation and recommendations",
             agent=self.agents["formatter"]
         )
 
@@ -179,12 +189,15 @@ Always end with 2-3 actionable recommendations.""",
         messages: List[Message],
         temperature: float = 0.7,
         max_tokens: int = 2000,
+        enable_visualizations: bool = True,
         **kwargs
     ) -> AgentResponse:
         """
         Process messages using simplified 3-agent CrewAI pipeline.
 
         Single-phase execution with coordinator-managed database queries.
+        Args:
+            enable_visualizations: Whether to enable database visualizations
         """
         # Extract user message
         user_message = None
@@ -231,7 +244,7 @@ Always end with 2-3 actionable recommendations.""",
                     db_results = f'{{"error": "Query failed: {str(e)}"}}'
 
             # Phase 3: Run full analysis and formatting pipeline
-            tasks = self._create_tasks(user_message, db_results)
+            tasks = self._create_tasks(user_message, db_results, enable_visualizations)
 
             crew = Crew(
                 agents=list(self.agents.values()),
@@ -272,10 +285,11 @@ Always end with 2-3 actionable recommendations.""",
         messages: List[Message],
         temperature: float = 0.7,
         max_tokens: int = 2000,
+        enable_visualizations: bool = True,
         **kwargs
     ):
         """Stream response in chunks (CrewAI doesn't support native streaming)"""
-        response = self.chat(messages, temperature, max_tokens, **kwargs)
+        response = self.chat(messages, temperature, max_tokens, enable_visualizations=enable_visualizations, **kwargs)
         content = response.message.content
         chunk_size = 30
 
