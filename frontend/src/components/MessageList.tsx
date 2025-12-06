@@ -53,9 +53,7 @@ const TypingIndicator: React.FC<{ isTyping: boolean; isDarkMode: boolean }> = ({
   const [currentWord, setCurrentWord] = useState(0);
   const words = [
     "Thinking",
-    "Retrieving Information",
-    "Reasoning",
-    "Preparing response",
+
   ];
 
   useEffect(() => {
