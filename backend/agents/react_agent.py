@@ -76,12 +76,26 @@ class ReACTAgent(BaseAgent):
             max_iterations = 5
             iteration = 0
 
+            # Track token usage across all iterations
+            total_input_tokens = 0
+            total_output_tokens = 0
+            sql_queries_executed = []
+
             while iteration < max_iterations:
                 iteration += 1
 
                 # Call LLM with tools
                 response = self.llm_with_tools.invoke(lc_messages)
                 lc_messages.append(response)
+
+                # Track token usage if available
+                if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                    total_input_tokens += response.usage_metadata.get('input_tokens', 0)
+                    total_output_tokens += response.usage_metadata.get('output_tokens', 0)
+                elif hasattr(response, 'response_metadata'):
+                    usage = response.response_metadata.get('token_usage', {})
+                    total_input_tokens += usage.get('prompt_tokens', 0)
+                    total_output_tokens += usage.get('completion_tokens', 0)
 
                 # Check if there are tool calls
                 if not response.tool_calls:
@@ -95,6 +109,10 @@ class ReACTAgent(BaseAgent):
 
                     print(f"🔧 Calling tool: {tool_name}", flush=True)
                     print(f"📝 Arguments: {tool_args}", flush=True)
+
+                    # Track SQL queries for evaluation
+                    if tool_name == "QueryDatabase" and "query" in tool_args:
+                        sql_queries_executed.append(tool_args["query"])
 
                     # Find and execute the tool
                     tool_result = None
@@ -123,13 +141,21 @@ class ReACTAgent(BaseAgent):
             final_message = lc_messages[-1]
             content = final_message.content if hasattr(final_message, "content") else str(final_message)
 
+            # Calculate total tokens
+            total_tokens = total_input_tokens + total_output_tokens
+
             return AgentResponse(
                 message=Message(role="assistant", content=content),
-                usage={},
+                usage={
+                    "prompt_tokens": total_input_tokens,
+                    "completion_tokens": total_output_tokens,
+                    "total_tokens": total_tokens
+                },
                 metadata={
                     "agent_type": "react",
                     "tools_used": [tool.name for tool in self.tools],
-                    "iterations": iteration
+                    "iterations": iteration,
+                    "sql_queries": sql_queries_executed
                 }
             )
 
