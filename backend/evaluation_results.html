@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Evaluation Results - Threat Explorer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 50px;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 25px;
+            color: #2d3748;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .metric-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            opacity: 0.9;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-card .value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .metric-card .label {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .comparison-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .comparison-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .comparison-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .comparison-table tbody tr:hover {
+            background: #f7fafc;
+        }
+
+        .agent-label {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .score {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .score.high {
+            color: #48bb78;
+        }
+
+        .score.medium {
+            color: #ed8936;
+        }
+
+        .score.low {
+            color: #f56565;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+        }
+
+        .question-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        .question-card h3 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .question-card .question-text {
+            color: #4a5568;
+            font-style: italic;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f7fafc;
+            border-radius: 4px;
+        }
+
+        .agent-response {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .agent-response-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .agent-response-header h4 {
+            color: #2d3748;
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .score-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .score-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .score-badge.success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .score-badge.warning {
+            background: #ed8936;
+            color: white;
+        }
+
+        .score-badge.error {
+            background: #f56565;
+            color: white;
+        }
+
+        .score-badge.info {
+            background: #667eea;
+            color: white;
+        }
+
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .metric-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .metric-item .label {
+            font-size: 0.75rem;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-item .value {
+            font-size: 1.1rem;
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .category-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .category-card h3 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .category-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-box {
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 6px;
+        }
+
+        .stat-box h4 {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .stat-box .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .response-preview {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: #4a5568;
+            max-height: 100px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .response-preview::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: linear-gradient(transparent, white);
+        }
+
+        .expand-btn {
+            margin-top: 5px;
+            padding: 6px 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+
+        .expand-btn:hover {
+            background: #5568d3;
+        }
+
+        .response-preview.expanded {
+            max-height: none;
+        }
+
+        .response-preview.expanded::after {
+            display: none;
+        }
+
+        .winner-badge {
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ Threat Explorer Agent Evaluation</h1>
+            <p>Comprehensive Performance Analysis & Comparison</p>
+        </div>
+
+        <div class="content">
+            <!-- Overview Metrics -->
+            <div class="section">
+                <h2 class="section-title">📊 Overview</h2>
+                <div id="overview-metrics"></div>
+            </div>
+
+            <!-- Performance Comparison Table -->
+            <div class="section">
+                <h2 class="section-title">📈 Performance Comparison</h2>
+                <div id="comparison-table"></div>
+            </div>
+
+            <!-- Charts -->
+            <div class="section">
+                <h2 class="section-title">📉 Performance Metrics</h2>
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 20px; color: #2d3748;">Query Validity & Pattern Match Rates</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="validityChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 20px; color: #2d3748;">Token Usage Comparison</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="tokenChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 20px; color: #2d3748;">Response Time Analysis</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="timeChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 20px; color: #2d3748;">Cost Analysis</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="costChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cost Analysis Table -->
+            <div class="section">
+                <h2 class="section-title">💰 Cost Analysis</h2>
+                <div id="cost-table"></div>
+            </div>
+
+            <!-- Question-by-Question Results -->
+            <div class="section">
+                <h2 class="section-title">📋 Detailed Results by Question</h2>
+                <div id="question-results"></div>
+            </div>
+
+            <!-- Performance by Category -->
+            <div class="section">
+                <h2 class="section-title">📂 Performance by Category</h2>
+                <div id="category-results"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const evaluationData = {
+  "summary": {
+    "total_questions": 3,
+    "total_configurations": 2,
+    "evaluation_date": "2025-12-07T20:08:46.463584"
+  },
+  "results": [
+    {
+      "agent_name": "LLM",
+      "agent_type": "llm",
+      "visualizations_enabled": true,
+      "avg_response_time": 7.282609303792317,
+      "aggregate_scores": {
+        "query_validity_rate": 0.3333333333333333,
+        "query_pattern_match_rate": 0.3333333333333333,
+        "visualization_correctness_rate": 0.3333333333333333,
+        "avg_response_time": 7.282609303792317,
+        "avg_response_length": 317.0,
+        "recommendations_rate": 0.0,
+        "error_rate": 0.0,
+        "total_input_tokens": 5882,
+        "total_output_tokens": 248,
+        "total_tokens": 6130,
+        "avg_input_tokens": 1960.6666666666667,
+        "avg_output_tokens": 82.66666666666667,
+        "avg_total_tokens": 2043.3333333333333
+      },
+      "responses": [
+        {
+          "question_id": "q1",
+          "question": "Show me the top 5 attack types",
+          "category": "simple_query",
+          "response": "Here are the top 3 attack types based on the number of incidents recorded in the database:\n\n```sql\nSELECT \"Attack Type\", COUNT(*) as count FROM attacks GROUP BY \"Attack Type\" ORDER BY count DESC LIMIT 5\n```\n\n```db-table\n{\n  \"columns\": [\"Attack Type\", \"count\"],\n  \"data\": [\n    {\"Attack Type\": \"DDoS\", \"count\": 13428},\n    {\"Attack Type\": \"Malware\", \"count\": 13307},\n    {\"Attack Type\": \"Intrusion\", \"count\": 13265}\n  ]\n}\n```\n\nIt appears there are only 3 distinct attack types recorded in the database. DDoS attacks are the most prevalent, followed closely by malware and intrusion attempts.",
+          "response_time": 8.340062856674194,
+          "scores": {
+            "query_validity": 1,
+            "query_pattern_match": 1,
+            "visualization_correctness": 0,
+            "response_length": 590,
+            "has_recommendations": 0,
+            "input_tokens": 1495,
+            "output_tokens": 157,
+            "total_tokens": 1652,
+            "query_error": null,
+            "visualization_type": "db-table"
+          },
+          "metadata": {
+            "agent_type": "llm",
+            "tools_used": [
+              "query_database"
+            ]
+          }
+        },
+        {
+          "question_id": "q2",
+          "question": "What are the severity levels in the database?",
+          "category": "simple_query",
+          "response": "The severity levels in the database are as follows:\n\n1. Low\n2. Medium\n3. High\n\nThese levels categorize the severity of different attacks recorded in the database.",
+          "response_time": 7.827023267745972,
+          "scores": {
+            "query_validity": 0,
+            "query_pattern_match": 0,
+            "visualization_correctness": 0,
+            "response_length": 162,
+            "has_recommendations": 0,
+            "input_tokens": 2196,
+            "output_tokens": 36,
+            "total_tokens": 2232,
+            "query_error": "No SQL query found in response",
+            "visualization_type": "none"
+          },
+          "metadata": {
+            "agent_type": "llm",
+            "tools_used": [
+              "get_database_info",
+              "query_database"
+            ]
+          }
+        },
+        {
+          "question_id": "q3",
+          "question": "List all unique protocols in the attacks database",
+          "category": "simple_query",
+          "response": "Here are the unique protocols found in the attacks database:\n\n```db-table\n{\n  \"columns\": [\"Protocol\"],\n  \"data\": [\n    {\"Protocol\": \"ICMP\"},\n    {\"Protocol\": \"UDP\"},\n    {\"Protocol\": \"TCP\"}\n  ]\n}\n```",
+          "response_time": 5.680741786956787,
+          "scores": {
+            "query_validity": 0,
+            "query_pattern_match": 0,
+            "visualization_correctness": 1,
+            "response_length": 199,
+            "has_recommendations": 0,
+            "input_tokens": 2191,
+            "output_tokens": 55,
+            "total_tokens": 2246,
+            "query_error": "No SQL query found in response",
+            "visualization_type": "db-table"
+          },
+          "metadata": {
+            "agent_type": "llm",
+            "tools_used": [
+              "get_database_info",
+              "query_database"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "agent_name": "ReACT",
+      "agent_type": "react",
+      "visualizations_enabled": true,
+      "avg_response_time": 3.9873936971028647,
+      "aggregate_scores": {
+        "query_validity_rate": 1.0,
+        "query_pattern_match_rate": 0.6666666666666666,
+        "visualization_correctness_rate": 0.3333333333333333,
+        "avg_response_time": 3.9873936971028647,
+        "avg_response_length": 389.0,
+        "recommendations_rate": 0.0,
+        "error_rate": 0.0,
+        "total_input_tokens": 10621,
+        "total_output_tokens": 377,
+        "total_tokens": 10998,
+        "avg_input_tokens": 3540.3333333333335,
+        "avg_output_tokens": 125.66666666666667,
+        "avg_total_tokens": 3666.0
+      },
+      "responses": [
+        {
+          "question_id": "q1",
+          "question": "Show me the top 5 attack types",
+          "category": "simple_query",
+          "response": "Here are the top 3 attack types based on the number of occurrences:\n\n```db-table\n{\n  \"columns\": [\"Attack Type\", \"Count\"],\n  \"data\": [\n    {\"Attack Type\": \"DDoS\", \"Count\": 13428},\n    {\"Attack Type\": \"Malware\", \"Count\": 13307},\n    {\"Attack Type\": \"Intrusion\", \"Count\": 13265}\n  ]\n}\n```\n\nIt appears that there are three main attack types in the dataset, with DDoS attacks being the most prevalent, followed closely by Malware and Intrusion attacks. If you need further details or analysis on these attack types, feel free to ask!",
+          "response_time": 4.73364782333374,
+          "scores": {
+            "query_validity": 1,
+            "query_pattern_match": 1,
+            "visualization_correctness": 0,
+            "response_length": 528,
+            "has_recommendations": 0,
+            "input_tokens": 2658,
+            "output_tokens": 177,
+            "total_tokens": 2835,
+            "query_error": null,
+            "visualization_type": "db-table"
+          },
+          "metadata": {
+            "agent_type": "react",
+            "tools_used": [
+              "QueryDatabase",
+              "GetDatabaseInfo"
+            ],
+            "iterations": 2,
+            "sql_queries": [
+              "SELECT \"Attack Type\", COUNT(*) as count FROM attacks GROUP BY \"Attack Type\" ORDER BY count DESC LIMIT 5"
+            ]
+          }
+        },
+        {
+          "question_id": "q2",
+          "question": "What are the severity levels in the database?",
+          "category": "simple_query",
+          "response": "The severity levels present in the database are as follows:\n\n```db-table\n{\n  \"columns\": [\"Severity Level\"],\n  \"data\": [\n    {\"Severity Level\": \"Low\"},\n    {\"Severity Level\": \"Medium\"},\n    {\"Severity Level\": \"High\"}\n  ]\n}\n```\n\nThese levels indicate the potential impact of the attacks recorded in the database, helping prioritize response efforts.",
+          "response_time": 4.153868198394775,
+          "scores": {
+            "query_validity": 1,
+            "query_pattern_match": 0,
+            "visualization_correctness": 0,
+            "response_length": 347,
+            "has_recommendations": 0,
+            "input_tokens": 5366,
+            "output_tokens": 110,
+            "total_tokens": 5476,
+            "query_error": null,
+            "visualization_type": "db-table"
+          },
+          "metadata": {
+            "agent_type": "react",
+            "tools_used": [
+              "QueryDatabase",
+              "GetDatabaseInfo"
+            ],
+            "iterations": 3,
+            "sql_queries": [
+              "SELECT DISTINCT \"Severity Level\" FROM attacks"
+            ]
+          }
+        },
+        {
+          "question_id": "q3",
+          "question": "List all unique protocols in the attacks database",
+          "category": "simple_query",
+          "response": "Here are the unique protocols found in the attacks database:\n\n```db-table\n{\n  \"columns\": [\"Protocol\"],\n  \"data\": [\n    {\"Protocol\": \"ICMP\"},\n    {\"Protocol\": \"UDP\"},\n    {\"Protocol\": \"TCP\"}\n  ]\n}\n``` \n\nThese protocols represent the types of network communication used in the recorded attacks.",
+          "response_time": 3.074665069580078,
+          "scores": {
+            "query_validity": 1,
+            "query_pattern_match": 1,
+            "visualization_correctness": 1,
+            "response_length": 292,
+            "has_recommendations": 0,
+            "input_tokens": 2597,
+            "output_tokens": 90,
+            "total_tokens": 2687,
+            "query_error": null,
+            "visualization_type": "db-table"
+          },
+          "metadata": {
+            "agent_type": "react",
+            "tools_used": [
+              "QueryDatabase",
+              "GetDatabaseInfo"
+            ],
+            "iterations": 2,
+            "sql_queries": [
+              "SELECT DISTINCT \"Protocol\" FROM attacks"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+};
+
+        // Helper function to get score class
+        function getScoreClass(value) {
+            if (value >= 0.8) return 'high';
+            if (value >= 0.5) return 'medium';
+            return 'low';
+        }
+
+        // Render overview metrics
+        function renderOverview() {
+            const container = document.getElementById('overview-metrics');
+            const bestOverall = evaluationData.results.reduce((best, current) => {
+                const bestScore = best.aggregate_scores.query_validity_rate;
+                const currentScore = current.aggregate_scores.query_validity_rate;
+                return currentScore > bestScore ? current : best;
+            });
+
+            const fastestAgent = evaluationData.results.reduce((fastest, current) =>
+                current.avg_response_time < fastest.avg_response_time ? current : fastest
+            );
+
+            const mostEfficient = evaluationData.results.reduce((best, current) =>
+                current.aggregate_scores.avg_total_tokens < best.aggregate_scores.avg_total_tokens ? current : best
+            );
+
+            container.innerHTML = `
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <h3>Total Questions</h3>
+                        <div class="value">${evaluationData.summary.total_questions}</div>
+                        <div class="label">Test Questions</div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Agents Tested</h3>
+                        <div class="value">${evaluationData.results.length}</div>
+                        <div class="label">Configurations</div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Best Performer</h3>
+                        <div class="value">${bestOverall.agent_name}</div>
+                        <div class="label">${(bestOverall.aggregate_scores.query_validity_rate * 100).toFixed(0)}% Valid</div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Fastest Agent</h3>
+                        <div class="value">${fastestAgent.agent_name}</div>
+                        <div class="label">${fastestAgent.avg_response_time.toFixed(2)}s avg</div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Most Efficient</h3>
+                        <div class="value">${mostEfficient.agent_name}</div>
+                        <div class="label">${Math.round(mostEfficient.aggregate_scores.avg_total_tokens)} tokens/query</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render comparison table
+        function renderComparisonTable() {
+            const container = document.getElementById('comparison-table');
+            const rows = evaluationData.results.map(result => {
+                const scores = result.aggregate_scores;
+                return `
+                    <tr>
+                        <td><div class="agent-label">${result.agent_name}</div></td>
+                        <td><span class="score ${getScoreClass(scores.query_validity_rate)}">${(scores.query_validity_rate * 100).toFixed(1)}%</span></td>
+                        <td><span class="score ${getScoreClass(scores.query_pattern_match_rate)}">${(scores.query_pattern_match_rate * 100).toFixed(1)}%</span></td>
+                        <td><span class="score ${getScoreClass(scores.visualization_correctness_rate)}">${(scores.visualization_correctness_rate * 100).toFixed(1)}%</span></td>
+                        <td>${result.avg_response_time.toFixed(2)}s</td>
+                        <td>${Math.round(scores.avg_total_tokens).toLocaleString()}</td>
+                        <td><span class="score ${getScoreClass(scores.recommendations_rate)}">${(scores.recommendations_rate * 100).toFixed(1)}%</span></td>
+                    </tr>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Agent</th>
+                            <th>Query Validity</th>
+                            <th>Pattern Match</th>
+                            <th>Viz Correct</th>
+                            <th>Avg Time</th>
+                            <th>Avg Tokens</th>
+                            <th>Recommendations</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Create validity chart
+        function createValidityChart() {
+            const ctx = document.getElementById('validityChart').getContext('2d');
+            const labels = evaluationData.results.map(r => r.agent_name);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Query Validity',
+                            data: evaluationData.results.map(r => r.aggregate_scores.query_validity_rate * 100),
+                            backgroundColor: 'rgba(102, 126, 234, 0.8)'
+                        },
+                        {
+                            label: 'Pattern Match',
+                            data: evaluationData.results.map(r => r.aggregate_scores.query_pattern_match_rate * 100),
+                            backgroundColor: 'rgba(118, 75, 162, 0.8)'
+                        },
+                        {
+                            label: 'Visualization Correct',
+                            data: evaluationData.results.map(r => r.aggregate_scores.visualization_correctness_rate * 100),
+                            backgroundColor: 'rgba(72, 187, 120, 0.8)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create token usage chart
+        function createTokenChart() {
+            const ctx = document.getElementById('tokenChart').getContext('2d');
+            const labels = evaluationData.results.map(r => r.agent_name);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Input Tokens',
+                            data: evaluationData.results.map(r => r.aggregate_scores.avg_input_tokens),
+                            backgroundColor: 'rgba(102, 126, 234, 0.8)'
+                        },
+                        {
+                            label: 'Output Tokens',
+                            data: evaluationData.results.map(r => r.aggregate_scores.avg_output_tokens),
+                            backgroundColor: 'rgba(237, 137, 54, 0.8)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            stacked: true
+                        },
+                        x: {
+                            stacked: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create response time chart
+        function createTimeChart() {
+            const ctx = document.getElementById('timeChart').getContext('2d');
+            const labels = evaluationData.results.map(r => r.agent_name);
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Average Response Time (seconds)',
+                        data: evaluationData.results.map(r => r.avg_response_time),
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create cost chart
+        function createCostChart() {
+            const ctx = document.getElementById('costChart').getContext('2d');
+            const labels = evaluationData.results.map(r => r.agent_name);
+
+            // Calculate costs (GPT-4o-mini pricing: $0.150 per 1M input, $0.600 per 1M output)
+            const inputCosts = evaluationData.results.map(r =>
+                (r.aggregate_scores.total_input_tokens / 1000000) * 0.150
+            );
+            const outputCosts = evaluationData.results.map(r =>
+                (r.aggregate_scores.total_output_tokens / 1000000) * 0.600
+            );
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Input Cost ($)',
+                            data: inputCosts,
+                            backgroundColor: 'rgba(102, 126, 234, 0.8)'
+                        },
+                        {
+                            label: 'Output Cost ($)',
+                            data: outputCosts,
+                            backgroundColor: 'rgba(237, 137, 54, 0.8)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            stacked: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(4);
+                                }
+                            }
+                        },
+                        x: {
+                            stacked: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': $' + context.parsed.y.toFixed(4);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render cost table
+        function renderCostTable() {
+            const container = document.getElementById('cost-table');
+            const rows = evaluationData.results.map(result => {
+                const scores = result.aggregate_scores;
+                const inputCost = (scores.total_input_tokens / 1000000) * 0.150;
+                const outputCost = (scores.total_output_tokens / 1000000) * 0.600;
+                const totalCost = inputCost + outputCost;
+                const costPerQuery = totalCost / evaluationData.summary.total_questions;
+
+                return `
+                    <tr>
+                        <td><div class="agent-label">${result.agent_name}</div></td>
+                        <td>${scores.total_input_tokens.toLocaleString()}</td>
+                        <td>${scores.total_output_tokens.toLocaleString()}</td>
+                        <td>${scores.total_tokens.toLocaleString()}</td>
+                        <td>$${inputCost.toFixed(4)}</td>
+                        <td>$${outputCost.toFixed(4)}</td>
+                        <td><strong>$${totalCost.toFixed(4)}</strong></td>
+                        <td>$${costPerQuery.toFixed(4)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Agent</th>
+                            <th>Input Tokens</th>
+                            <th>Output Tokens</th>
+                            <th>Total Tokens</th>
+                            <th>Input Cost</th>
+                            <th>Output Cost</th>
+                            <th>Total Cost</th>
+                            <th>Cost/Query</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+                <p style="margin-top: 15px; color: #718096; font-size: 0.9rem;">
+                    * Pricing based on GPT-4o-mini: $0.150 per 1M input tokens, $0.600 per 1M output tokens
+                </p>
+            `;
+        }
+
+        // Render question-by-question results
+        function renderQuestionResults() {
+            const container = document.getElementById('question-results');
+
+            // Group responses by question
+            const questionMap = {};
+            evaluationData.results.forEach(result => {
+                result.responses.forEach(response => {
+                    if (!questionMap[response.question_id]) {
+                        questionMap[response.question_id] = {
+                            question: response.question,
+                            category: response.category,
+                            responses: []
+                        };
+                    }
+                    questionMap[response.question_id].responses.push({
+                        agent: result.agent_name,
+                        ...response
+                    });
+                });
+            });
+
+            const questionsHtml = Object.entries(questionMap).map(([qId, qData]) => {
+                const responsesHtml = qData.responses.map(r => {
+                    const queryValid = r.scores?.query_validity === 1;
+                    const patternMatch = r.scores?.query_pattern_match === 1;
+                    const vizCorrect = r.scores?.visualization_correctness === 1;
+                    const hasError = r.error ? true : false;
+
+                    const badges = [];
+                    if (hasError) {
+                        badges.push('<span class="score-badge error">Error</span>');
+                    } else {
+                        badges.push(queryValid ?
+                            '<span class="score-badge success">Valid SQL</span>' :
+                            '<span class="score-badge error">Invalid SQL</span>');
+                        badges.push(patternMatch ?
+                            '<span class="score-badge success">Pattern Match</span>' :
+                            '<span class="score-badge warning">No Pattern</span>');
+                        badges.push(vizCorrect ?
+                            '<span class="score-badge success">Correct Viz</span>' :
+                            '<span class="score-badge warning">Wrong Viz</span>');
+                    }
+
+                    return `
+                        <div class="agent-response">
+                            <div class="agent-response-header">
+                                <h4>${r.agent}</h4>
+                                <div class="score-badges">${badges.join('')}</div>
+                            </div>
+                            <div class="metrics-row">
+                                <div class="metric-item">
+                                    <span class="label">Response Time</span>
+                                    <span class="value">${r.response_time?.toFixed(2) || 'N/A'}s</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="label">Tokens</span>
+                                    <span class="value">${r.scores?.total_tokens?.toLocaleString() || '0'}</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="label">Visualization</span>
+                                    <span class="value">${r.scores?.visualization_type || 'none'}</span>
+                                </div>
+                            </div>
+                            <div class="response-preview" id="preview-${qId}-${r.agent}">
+                                ${hasError ? 'Error: ' + r.error : (r.response || 'No response').substring(0, 200)}...
+                            </div>
+                            <button class="expand-btn" onclick="togglePreview('${qId}-${r.agent}')">Show Full Response</button>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="question-card">
+                        <h3>${qId.toUpperCase()}: ${qData.question}</h3>
+                        <div class="question-text">
+                            Category: <strong>${qData.category.replace('_', ' ')}</strong>
+                        </div>
+                        ${responsesHtml}
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = questionsHtml;
+        }
+
+        // Toggle response preview
+        function togglePreview(id) {
+            const preview = document.getElementById('preview-' + id);
+            const isExpanded = preview.classList.contains('expanded');
+
+            if (isExpanded) {
+                preview.classList.remove('expanded');
+                event.target.textContent = 'Show Full Response';
+            } else {
+                // Get full response text
+                const [qId, agent] = id.split('-');
+                const questionData = Object.values(evaluationData.results)
+                    .flatMap(r => r.responses)
+                    .find(resp => resp.question_id === qId);
+
+                if (questionData) {
+                    const response = evaluationData.results
+                        .find(r => r.agent_name === agent)
+                        ?.responses.find(resp => resp.question_id === qId);
+
+                    if (response) {
+                        preview.textContent = response.error || response.response || 'No response';
+                        preview.classList.add('expanded');
+                        event.target.textContent = 'Hide Full Response';
+                    }
+                }
+            }
+        }
+
+        // Render category performance
+        function renderCategoryResults() {
+            const container = document.getElementById('category-results');
+
+            // Group by category
+            const categories = {};
+            evaluationData.results.forEach(result => {
+                result.responses.forEach(response => {
+                    const cat = response.category;
+                    if (!categories[cat]) {
+                        categories[cat] = {};
+                    }
+                    if (!categories[cat][result.agent_name]) {
+                        categories[cat][result.agent_name] = {
+                            total: 0,
+                            valid: 0,
+                            pattern_match: 0,
+                            viz_correct: 0
+                        };
+                    }
+                    const stats = categories[cat][result.agent_name];
+                    stats.total++;
+                    if (response.scores?.query_validity === 1) stats.valid++;
+                    if (response.scores?.query_pattern_match === 1) stats.pattern_match++;
+                    if (response.scores?.visualization_correctness === 1) stats.viz_correct++;
+                });
+            });
+
+            const categoriesHtml = Object.entries(categories).map(([category, agentStats]) => {
+                const statsHtml = Object.entries(agentStats).map(([agent, stats]) => {
+                    const validRate = (stats.valid / stats.total * 100).toFixed(0);
+                    const patternRate = (stats.pattern_match / stats.total * 100).toFixed(0);
+                    const vizRate = (stats.viz_correct / stats.total * 100).toFixed(0);
+
+                    return `
+                        <div class="stat-box">
+                            <h4>${agent}</h4>
+                            <div class="value">${validRate}%</div>
+                            <div style="font-size: 0.85rem; margin-top: 5px;">
+                                Valid: ${validRate}% | Pattern: ${patternRate}% | Viz: ${vizRate}%
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="category-card">
+                        <h3>${category.replace('_', ' ').toUpperCase()}</h3>
+                        <div class="category-stats">
+                            ${statsHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = categoriesHtml;
+        }
+
+        // Initialize all visualizations
+        renderOverview();
+        renderComparisonTable();
+        createValidityChart();
+        createTokenChart();
+        createTimeChart();
+        createCostChart();
+        renderCostTable();
+        renderQuestionResults();
+        renderCategoryResults();
+    </script>
+</body>
+</html>

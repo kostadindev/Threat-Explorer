@@ -1,0 +1,215 @@
+[
+  {
+    "agent_name": "LLM",
+    "visualizations_enabled": true,
+    "total_questions": 3,
+    "responses": [
+      {
+        "question_id": "q1",
+        "question": "Show me the top 5 attack types",
+        "category": "simple_query",
+        "response": "Here are the top 3 attack types based on the number of incidents recorded in the database:\n\n```sql\nSELECT \"Attack Type\", COUNT(*) as count FROM attacks GROUP BY \"Attack Type\" ORDER BY count DESC LIMIT 5\n```\n\n```db-table\n{\n  \"columns\": [\"Attack Type\", \"count\"],\n  \"data\": [\n    {\"Attack Type\": \"DDoS\", \"count\": 13428},\n    {\"Attack Type\": \"Malware\", \"count\": 13307},\n    {\"Attack Type\": \"Intrusion\", \"count\": 13265}\n  ]\n}\n```\n\nIt appears there are only 3 distinct attack types recorded in the database. DDoS attacks are the most prevalent, followed closely by malware and intrusion attempts.",
+        "response_time": 8.340062856674194,
+        "scores": {
+          "query_validity": 1,
+          "query_pattern_match": 1,
+          "visualization_correctness": 0,
+          "response_length": 590,
+          "has_recommendations": 0,
+          "input_tokens": 1495,
+          "output_tokens": 157,
+          "total_tokens": 1652,
+          "query_error": null,
+          "visualization_type": "db-table"
+        },
+        "metadata": {
+          "agent_type": "llm",
+          "tools_used": [
+            "query_database"
+          ]
+        }
+      },
+      {
+        "question_id": "q2",
+        "question": "What are the severity levels in the database?",
+        "category": "simple_query",
+        "response": "The severity levels in the database are as follows:\n\n1. Low\n2. Medium\n3. High\n\nThese levels categorize the severity of different attacks recorded in the database.",
+        "response_time": 7.827023267745972,
+        "scores": {
+          "query_validity": 0,
+          "query_pattern_match": 0,
+          "visualization_correctness": 0,
+          "response_length": 162,
+          "has_recommendations": 0,
+          "input_tokens": 2196,
+          "output_tokens": 36,
+          "total_tokens": 2232,
+          "query_error": "No SQL query found in response",
+          "visualization_type": "none"
+        },
+        "metadata": {
+          "agent_type": "llm",
+          "tools_used": [
+            "get_database_info",
+            "query_database"
+          ]
+        }
+      },
+      {
+        "question_id": "q3",
+        "question": "List all unique protocols in the attacks database",
+        "category": "simple_query",
+        "response": "Here are the unique protocols found in the attacks database:\n\n```db-table\n{\n  \"columns\": [\"Protocol\"],\n  \"data\": [\n    {\"Protocol\": \"ICMP\"},\n    {\"Protocol\": \"UDP\"},\n    {\"Protocol\": \"TCP\"}\n  ]\n}\n```",
+        "response_time": 5.680741786956787,
+        "scores": {
+          "query_validity": 0,
+          "query_pattern_match": 0,
+          "visualization_correctness": 1,
+          "response_length": 199,
+          "has_recommendations": 0,
+          "input_tokens": 2191,
+          "output_tokens": 55,
+          "total_tokens": 2246,
+          "query_error": "No SQL query found in response",
+          "visualization_type": "db-table"
+        },
+        "metadata": {
+          "agent_type": "llm",
+          "tools_used": [
+            "get_database_info",
+            "query_database"
+          ]
+        }
+      }
+    ],
+    "aggregate_scores": {
+      "query_validity_rate": 0.3333333333333333,
+      "query_pattern_match_rate": 0.3333333333333333,
+      "visualization_correctness_rate": 0.3333333333333333,
+      "avg_response_time": 7.282609303792317,
+      "avg_response_length": 317.0,
+      "recommendations_rate": 0.0,
+      "error_rate": 0.0,
+      "total_input_tokens": 5882,
+      "total_output_tokens": 248,
+      "total_tokens": 6130,
+      "avg_input_tokens": 1960.6666666666667,
+      "avg_output_tokens": 82.66666666666667,
+      "avg_total_tokens": 2043.3333333333333
+    },
+    "total_time": 21.847827911376953
+  },
+  {
+    "agent_name": "ReACT",
+    "visualizations_enabled": true,
+    "total_questions": 3,
+    "responses": [
+      {
+        "question_id": "q1",
+        "question": "Show me the top 5 attack types",
+        "category": "simple_query",
+        "response": "Here are the top 3 attack types based on the number of occurrences:\n\n```db-table\n{\n  \"columns\": [\"Attack Type\", \"Count\"],\n  \"data\": [\n    {\"Attack Type\": \"DDoS\", \"Count\": 13428},\n    {\"Attack Type\": \"Malware\", \"Count\": 13307},\n    {\"Attack Type\": \"Intrusion\", \"Count\": 13265}\n  ]\n}\n```\n\nIt appears that there are three main attack types in the dataset, with DDoS attacks being the most prevalent, followed closely by Malware and Intrusion attacks. If you need further details or analysis on these attack types, feel free to ask!",
+        "response_time": 4.73364782333374,
+        "scores": {
+          "query_validity": 1,
+          "query_pattern_match": 1,
+          "visualization_correctness": 0,
+          "response_length": 528,
+          "has_recommendations": 0,
+          "input_tokens": 2658,
+          "output_tokens": 177,
+          "total_tokens": 2835,
+          "query_error": null,
+          "visualization_type": "db-table"
+        },
+        "metadata": {
+          "agent_type": "react",
+          "tools_used": [
+            "QueryDatabase",
+            "GetDatabaseInfo"
+          ],
+          "iterations": 2,
+          "sql_queries": [
+            "SELECT \"Attack Type\", COUNT(*) as count FROM attacks GROUP BY \"Attack Type\" ORDER BY count DESC LIMIT 5"
+          ]
+        }
+      },
+      {
+        "question_id": "q2",
+        "question": "What are the severity levels in the database?",
+        "category": "simple_query",
+        "response": "The severity levels present in the database are as follows:\n\n```db-table\n{\n  \"columns\": [\"Severity Level\"],\n  \"data\": [\n    {\"Severity Level\": \"Low\"},\n    {\"Severity Level\": \"Medium\"},\n    {\"Severity Level\": \"High\"}\n  ]\n}\n```\n\nThese levels indicate the potential impact of the attacks recorded in the database, helping prioritize response efforts.",
+        "response_time": 4.153868198394775,
+        "scores": {
+          "query_validity": 1,
+          "query_pattern_match": 0,
+          "visualization_correctness": 0,
+          "response_length": 347,
+          "has_recommendations": 0,
+          "input_tokens": 5366,
+          "output_tokens": 110,
+          "total_tokens": 5476,
+          "query_error": null,
+          "visualization_type": "db-table"
+        },
+        "metadata": {
+          "agent_type": "react",
+          "tools_used": [
+            "QueryDatabase",
+            "GetDatabaseInfo"
+          ],
+          "iterations": 3,
+          "sql_queries": [
+            "SELECT DISTINCT \"Severity Level\" FROM attacks"
+          ]
+        }
+      },
+      {
+        "question_id": "q3",
+        "question": "List all unique protocols in the attacks database",
+        "category": "simple_query",
+        "response": "Here are the unique protocols found in the attacks database:\n\n```db-table\n{\n  \"columns\": [\"Protocol\"],\n  \"data\": [\n    {\"Protocol\": \"ICMP\"},\n    {\"Protocol\": \"UDP\"},\n    {\"Protocol\": \"TCP\"}\n  ]\n}\n``` \n\nThese protocols represent the types of network communication used in the recorded attacks.",
+        "response_time": 3.074665069580078,
+        "scores": {
+          "query_validity": 1,
+          "query_pattern_match": 1,
+          "visualization_correctness": 1,
+          "response_length": 292,
+          "has_recommendations": 0,
+          "input_tokens": 2597,
+          "output_tokens": 90,
+          "total_tokens": 2687,
+          "query_error": null,
+          "visualization_type": "db-table"
+        },
+        "metadata": {
+          "agent_type": "react",
+          "tools_used": [
+            "QueryDatabase",
+            "GetDatabaseInfo"
+          ],
+          "iterations": 2,
+          "sql_queries": [
+            "SELECT DISTINCT \"Protocol\" FROM attacks"
+          ]
+        }
+      }
+    ],
+    "aggregate_scores": {
+      "query_validity_rate": 1.0,
+      "query_pattern_match_rate": 0.6666666666666666,
+      "visualization_correctness_rate": 0.3333333333333333,
+      "avg_response_time": 3.9873936971028647,
+      "avg_response_length": 389.0,
+      "recommendations_rate": 0.0,
+      "error_rate": 0.0,
+      "total_input_tokens": 10621,
+      "total_output_tokens": 377,
+      "total_tokens": 10998,
+      "avg_input_tokens": 3540.3333333333335,
+      "avg_output_tokens": 125.66666666666667,
+      "avg_total_tokens": 3666.0
+    },
+    "total_time": 11.962181091308594
+  }
+]
