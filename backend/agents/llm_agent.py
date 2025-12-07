@@ -84,15 +84,6 @@ class LLMAgent(BaseAgent):
         Returns:
             AgentResponse with LLM's reply
         """
-        print("", flush=True)
-        print("=" * 80, flush=True)
-        print("🤖 LLM AGENT - FUNCTION CALLING MODE", flush=True)
-        print("=" * 80, flush=True)
-        print(f"🔧 Available tools: {[tool['function']['name'] for tool in self.tools]}", flush=True)
-        print(f"📊 Visualizations: {'enabled' if enable_visualizations else 'disabled'}", flush=True)
-        print("=" * 80, flush=True)
-        print("", flush=True)
-
         # Extract system prompts and conversation messages separately
         system_prompt = get_system_prompt(LLM_AGENT_SYSTEM_PROMPT, enable_visualizations)
         system_messages = [SystemMessage(content=system_prompt)]
@@ -114,33 +105,21 @@ class LLMAgent(BaseAgent):
         llm = ChatOpenAI(
             model=self.model,
             temperature=temperature,
-            max_tokens=max_tokens,
+            max_tokens=kwargs.get("max_tokens", 2000),
             openai_api_key=self.api_key
         )
 
         # Bind tools to the LLM
         llm_with_tools = llm.bind_tools(self.tools)
 
-        print("🔄 Sending initial request to LLM...", flush=True)
         # Get initial response
         response = llm_with_tools.invoke(langchain_messages)
-
-        # Check if LLM wants to use tools
-        if hasattr(response, "tool_calls") and response.tool_calls:
-            print(f"✅ LLM decided to use {len(response.tool_calls)} tool(s)", flush=True)
-        else:
-            print("ℹ️  LLM decided NOT to use any tools - providing direct response", flush=True)
 
         # Handle tool calls if present
         tool_calls_made = []
         iteration = 0
         while hasattr(response, "tool_calls") and response.tool_calls:
             iteration += 1
-            print("", flush=True)
-            print("=" * 80, flush=True)
-            print(f"🤖 LLM AGENT - Tool Call Iteration {iteration}", flush=True)
-            print(f"📞 Number of tool calls: {len(response.tool_calls)}", flush=True)
-            print("=" * 80, flush=True)
 
             # Add assistant's message with tool calls to history
             langchain_messages.append(response)
@@ -151,14 +130,8 @@ class LLMAgent(BaseAgent):
                 tool_arguments = tool_call["args"]
                 tool_calls_made.append(tool_name)
 
-                print(f"\n🔧 Tool Call #{idx}", flush=True)
-                print(f"   Name: {tool_name}", flush=True)
-                print(f"   Arguments: {json.dumps(tool_arguments, indent=6)}", flush=True)
-
                 # Execute the tool
                 tool_result = self._execute_tool(tool_name, tool_arguments)
-
-                print(f"   Result length: {len(tool_result)} characters", flush=True)
 
                 # Add tool result to messages
                 langchain_messages.append(
@@ -168,18 +141,8 @@ class LLMAgent(BaseAgent):
                     )
                 )
 
-            print("", flush=True)
-            print("🔄 Getting LLM response with tool results...", flush=True)
             # Get next response
             response = llm_with_tools.invoke(langchain_messages)
-
-        if tool_calls_made:
-            print("", flush=True)
-            print("=" * 80, flush=True)
-            print(f"✅ LLM AGENT - Tool calling complete", flush=True)
-            print(f"📊 Total tools used: {tool_calls_made}", flush=True)
-            print("=" * 80, flush=True)
-            print("", flush=True)
 
         # Extract usage
         usage = {}
@@ -220,15 +183,6 @@ class LLMAgent(BaseAgent):
         Yields:
             Chunks of the response as they arrive
         """
-        print("", flush=True)
-        print("=" * 80, flush=True)
-        print("🌊 LLM AGENT - STREAMING MODE WITH TOOL SUPPORT", flush=True)
-        print(f"📊 Visualizations: {'enabled' if enable_visualizations else 'disabled'}", flush=True)
-        print("=" * 80, flush=True)
-        print(f"🔧 Available tools: {[tool['function']['name'] for tool in self.tools]}", flush=True)
-        print("=" * 80, flush=True)
-        print("", flush=True)
-
         # Extract system prompts and conversation messages separately
         system_prompt = get_system_prompt(LLM_AGENT_SYSTEM_PROMPT, enable_visualizations)
         system_messages = [SystemMessage(content=system_prompt)]
@@ -264,9 +218,6 @@ class LLMAgent(BaseAgent):
         max_iterations = 5  # Prevent infinite loops
         final_response = None
 
-        print("🔄 Checking for tool calls...", flush=True)
-        print("", flush=True)
-
         while iteration < max_iterations:
             iteration += 1
             
@@ -276,13 +227,6 @@ class LLMAgent(BaseAgent):
 
             # Check if LLM wants to use tools
             if hasattr(response, "tool_calls") and response.tool_calls:
-                print("", flush=True)
-                print("=" * 80, flush=True)
-                print(f"🔧 Tool calls detected (iteration {iteration})", flush=True)
-                print(f"📞 Number of tool calls: {len(response.tool_calls)}", flush=True)
-                print("=" * 80, flush=True)
-                print("", flush=True)
-
                 # Add assistant's message with tool calls to history
                 langchain_messages.append(response)
 
@@ -292,14 +236,8 @@ class LLMAgent(BaseAgent):
                     tool_arguments = tool_call["args"]
                     tool_calls_made.append(tool_name)
 
-                    print(f"\n🔧 Tool Call #{idx}", flush=True)
-                    print(f"   Name: {tool_name}", flush=True)
-                    print(f"   Arguments: {json.dumps(tool_arguments, indent=6)}", flush=True)
-
                     # Execute the tool
                     tool_result = self._execute_tool(tool_name, tool_arguments)
-
-                    print(f"   Result length: {len(tool_result)} characters", flush=True)
 
                     # Add tool result to messages
                     langchain_messages.append(
@@ -309,9 +247,6 @@ class LLMAgent(BaseAgent):
                         )
                     )
 
-                print("", flush=True)
-                print("🔄 Getting final response with tool results...", flush=True)
-                print("", flush=True)
                 # Continue the loop to get the next response
                 continue
             else:
@@ -319,44 +254,26 @@ class LLMAgent(BaseAgent):
                 final_response = response
                 break
 
-        if tool_calls_made:
-            print("", flush=True)
-            print("=" * 80, flush=True)
-            print(f"✅ Tool execution complete", flush=True)
-            print(f"📊 Total tools used: {tool_calls_made}", flush=True)
-            print("=" * 80, flush=True)
-            print("", flush=True)
-
         # Now stream the final response after tool execution
-        print("🔄 Starting to stream final response chunks...", flush=True)
-        print("", flush=True)
-
         # Stream the final response
         # If we have a response with content, stream it in chunks for better UX
         # Otherwise, make a streaming API call
-        chunk_count = 0
         if final_response and final_response.content:
             # Stream the content we already have in chunks
             content = final_response.content
             chunk_size = 30  # Stream in chunks for smooth UX
             for i in range(0, len(content), chunk_size):
                 chunk = content[i:i + chunk_size]
-                chunk_count += 1
                 yield chunk
         elif final_response is None or (final_response and not final_response.content):
             # Make a streaming API call for the final response
             # This handles cases where we don't have a final response yet
             for chunk in llm_with_tools.stream(langchain_messages):
                 if chunk.content:
-                    chunk_count += 1
                     yield chunk.content
         else:
             # Fallback: yield empty string if we somehow get here
             yield ""
-
-        print("", flush=True)
-        print(f"✅ Streaming complete - sent {chunk_count} chunks", flush=True)
-        print("", flush=True)
 
     def get_agent_type(self) -> str:
         return "llm"

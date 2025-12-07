@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
-import os
+
 
 from api import router
 from config import config
@@ -82,8 +82,7 @@ else:
 @app.on_event("startup")
 async def startup_event():
     """Initialize database on application startup"""
-    import logging
-    logger = logging.getLogger(__name__)
+
 
     logger.info("")
     logger.info("=" * 80)
