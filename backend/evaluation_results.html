@@ -372,6 +372,34 @@
             text-transform: uppercase;
             display: inline-block;
         }
+
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            padding: 40px;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #e2e8f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 20px;
+            color: #718096;
+            font-size: 1.1rem;
+        }
     </style>
 </head>
 <body>
@@ -382,6 +410,14 @@
         </div>
 
         <div class="content">
+            <!-- Loading indicator -->
+            <div id="loading" class="loading-container">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading evaluation results...</div>
+            </div>
+
+            <!-- Content sections (hidden until loaded) -->
+            <div id="report-content" style="display: none;">
             <!-- Overview Metrics -->
             <div class="section">
                 <h2 class="section-title">📊 Overview</h2>
@@ -424,6 +460,13 @@
                         <canvas id="costChart"></canvas>
                     </div>
                 </div>
+
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 20px; color: #2d3748;">LLM Judge Ratings (1-5 Scale)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="judgeChart"></canvas>
+                    </div>
+                </div>
             </div>
 
             <!-- Cost Analysis Table -->
@@ -443,232 +486,129 @@
                 <h2 class="section-title">📂 Performance by Category</h2>
                 <div id="category-results"></div>
             </div>
+
+            <!-- Individual Evaluation Results Table -->
+            <div class="section">
+                <h2 class="section-title">📋 Complete Evaluation Results (All Turns)</h2>
+                <div id="individual-results-table"></div>
+            </div>
+
+            <!-- Per-Agent Detailed Tables -->
+            <div class="section">
+                <h2 class="section-title">🔍 Per-Agent Detailed Results</h2>
+                <div id="per-agent-tables"></div>
+            </div>
+            </div><!-- End report-content -->
         </div>
     </div>
 
     <script>
-        const evaluationData = {
-  "summary": {
-    "total_questions": 3,
-    "total_configurations": 2,
-    "evaluation_date": "2025-12-07T20:08:46.463584"
-  },
-  "results": [
-    {
-      "agent_name": "LLM",
-      "agent_type": "llm",
-      "visualizations_enabled": true,
-      "avg_response_time": 7.282609303792317,
-      "aggregate_scores": {
-        "query_validity_rate": 0.3333333333333333,
-        "query_pattern_match_rate": 0.3333333333333333,
-        "visualization_correctness_rate": 0.3333333333333333,
-        "avg_response_time": 7.282609303792317,
-        "avg_response_length": 317.0,
-        "recommendations_rate": 0.0,
-        "error_rate": 0.0,
-        "total_input_tokens": 5882,
-        "total_output_tokens": 248,
-        "total_tokens": 6130,
-        "avg_input_tokens": 1960.6666666666667,
-        "avg_output_tokens": 82.66666666666667,
-        "avg_total_tokens": 2043.3333333333333
-      },
-      "responses": [
-        {
-          "question_id": "q1",
-          "question": "Show me the top 5 attack types",
-          "category": "simple_query",
-          "response": "Here are the top 3 attack types based on the number of incidents recorded in the database:\n\n```sql\nSELECT \"Attack Type\", COUNT(*) as count FROM attacks GROUP BY \"Attack Type\" ORDER BY count DESC LIMIT 5\n```\n\n```db-table\n{\n  \"columns\": [\"Attack Type\", \"count\"],\n  \"data\": [\n    {\"Attack Type\": \"DDoS\", \"count\": 13428},\n    {\"Attack Type\": \"Malware\", \"count\": 13307},\n    {\"Attack Type\": \"Intrusion\", \"count\": 13265}\n  ]\n}\n```\n\nIt appears there are only 3 distinct attack types recorded in the database. DDoS attacks are the most prevalent, followed closely by malware and intrusion attempts.",
-          "response_time": 8.340062856674194,
-          "scores": {
-            "query_validity": 1,
-            "query_pattern_match": 1,
-            "visualization_correctness": 0,
-            "response_length": 590,
-            "has_recommendations": 0,
-            "input_tokens": 1495,
-            "output_tokens": 157,
-            "total_tokens": 1652,
-            "query_error": null,
-            "visualization_type": "db-table"
-          },
-          "metadata": {
-            "agent_type": "llm",
-            "tools_used": [
-              "query_database"
-            ]
-          }
-        },
-        {
-          "question_id": "q2",
-          "question": "What are the severity levels in the database?",
-          "category": "simple_query",
-          "response": "The severity levels in the database are as follows:\n\n1. Low\n2. Medium\n3. High\n\nThese levels categorize the severity of different attacks recorded in the database.",
-          "response_time": 7.827023267745972,
-          "scores": {
-            "query_validity": 0,
-            "query_pattern_match": 0,
-            "visualization_correctness": 0,
-            "response_length": 162,
-            "has_recommendations": 0,
-            "input_tokens": 2196,
-            "output_tokens": 36,
-            "total_tokens": 2232,
-            "query_error": "No SQL query found in response",
-            "visualization_type": "none"
-          },
-          "metadata": {
-            "agent_type": "llm",
-            "tools_used": [
-              "get_database_info",
-              "query_database"
-            ]
-          }
-        },
-        {
-          "question_id": "q3",
-          "question": "List all unique protocols in the attacks database",
-          "category": "simple_query",
-          "response": "Here are the unique protocols found in the attacks database:\n\n```db-table\n{\n  \"columns\": [\"Protocol\"],\n  \"data\": [\n    {\"Protocol\": \"ICMP\"},\n    {\"Protocol\": \"UDP\"},\n    {\"Protocol\": \"TCP\"}\n  ]\n}\n```",
-          "response_time": 5.680741786956787,
-          "scores": {
-            "query_validity": 0,
-            "query_pattern_match": 0,
-            "visualization_correctness": 1,
-            "response_length": 199,
-            "has_recommendations": 0,
-            "input_tokens": 2191,
-            "output_tokens": 55,
-            "total_tokens": 2246,
-            "query_error": "No SQL query found in response",
-            "visualization_type": "db-table"
-          },
-          "metadata": {
-            "agent_type": "llm",
-            "tools_used": [
-              "get_database_info",
-              "query_database"
-            ]
-          }
+        let evaluationData = null;
+
+        // Load evaluation data from JSON file
+        async function loadEvaluationData() {
+            try {
+                const response = await fetch('evaluation_results.json');
+                if (!response.ok) {
+                    throw new Error(`Failed to load results: ${response.statusText}`);
+                }
+                evaluationData = await response.json();
+
+                // Transform raw results to expected format
+                transformData();
+
+                // Hide loading indicator and show content
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('report-content').style.display = 'block';
+
+                // Initialize all visualizations
+                initializeVisualizations();
+            } catch (error) {
+                console.error('Error loading evaluation data:', error);
+                document.getElementById('loading').innerHTML = `
+                    <div style="text-align: center; max-width: 800px; margin: 0 auto;">
+                        <h1 style="color: #f56565; margin-bottom: 20px;">❌ CORS Error: Cannot Load Results</h1>
+                        <p style="color: #718096; font-size: 1.1rem; margin-bottom: 20px;">
+                            The browser blocked loading <strong>evaluation_results.json</strong> due to CORS restrictions when opening HTML files directly.
+                        </p>
+
+                        <div style="background: #fff5f5; border: 2px solid #f56565; border-radius: 8px; padding: 20px; margin-bottom: 20px; text-align: left;">
+                            <h3 style="color: #c53030; margin-bottom: 10px;">🔧 How to Fix This:</h3>
+                            <p style="color: #4a5568; margin-bottom: 15px;">You need to serve the HTML file using a local web server. Choose one of these options:</p>
+
+                            <div style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                                <p style="margin-bottom: 10px; font-weight: bold;">Option 1: Python HTTP Server (Recommended)</p>
+                                <code style="display: block; background: #1a202c; padding: 10px; border-radius: 4px; font-family: monospace;">
+                                    cd /Users/kostadindev/repos/Threat-Explorer/backend
+                                    <br>python -m http.server 8000
+                                </code>
+                                <p style="margin-top: 10px; font-size: 0.9rem;">Then open: <a href="http://localhost:8000/evaluation_results.html" style="color: #90cdf4;">http://localhost:8000/evaluation_results.html</a></p>
+                            </div>
+
+                            <div style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                                <p style="margin-bottom: 10px; font-weight: bold;">Option 2: Node.js HTTP Server</p>
+                                <code style="display: block; background: #1a202c; padding: 10px; border-radius: 4px; font-family: monospace;">
+                                    npx http-server -p 8000
+                                </code>
+                            </div>
+
+                            <div style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 6px;">
+                                <p style="margin-bottom: 10px; font-weight: bold;">Option 3: VS Code Live Server</p>
+                                <p style="font-size: 0.9rem;">Right-click the HTML file in VS Code and select "Open with Live Server"</p>
+                            </div>
+                        </div>
+
+                        <details style="text-align: left; background: #f7fafc; padding: 15px; border-radius: 8px;">
+                            <summary style="cursor: pointer; font-weight: bold; color: #2d3748; margin-bottom: 10px;">Show Technical Error Details</summary>
+                            <pre style="background: #1a202c; color: #e2e8f0; padding: 15px; border-radius: 4px; overflow-x: auto; margin-top: 10px;">Error: ${error.message}</pre>
+                        </details>
+                    </div>
+                `;
+            }
         }
-      ]
-    },
-    {
-      "agent_name": "ReACT",
-      "agent_type": "react",
-      "visualizations_enabled": true,
-      "avg_response_time": 3.9873936971028647,
-      "aggregate_scores": {
-        "query_validity_rate": 1.0,
-        "query_pattern_match_rate": 0.6666666666666666,
-        "visualization_correctness_rate": 0.3333333333333333,
-        "avg_response_time": 3.9873936971028647,
-        "avg_response_length": 389.0,
-        "recommendations_rate": 0.0,
-        "error_rate": 0.0,
-        "total_input_tokens": 10621,
-        "total_output_tokens": 377,
-        "total_tokens": 10998,
-        "avg_input_tokens": 3540.3333333333335,
-        "avg_output_tokens": 125.66666666666667,
-        "avg_total_tokens": 3666.0
-      },
-      "responses": [
-        {
-          "question_id": "q1",
-          "question": "Show me the top 5 attack types",
-          "category": "simple_query",
-          "response": "Here are the top 3 attack types based on the number of occurrences:\n\n```db-table\n{\n  \"columns\": [\"Attack Type\", \"Count\"],\n  \"data\": [\n    {\"Attack Type\": \"DDoS\", \"Count\": 13428},\n    {\"Attack Type\": \"Malware\", \"Count\": 13307},\n    {\"Attack Type\": \"Intrusion\", \"Count\": 13265}\n  ]\n}\n```\n\nIt appears that there are three main attack types in the dataset, with DDoS attacks being the most prevalent, followed closely by Malware and Intrusion attacks. If you need further details or analysis on these attack types, feel free to ask!",
-          "response_time": 4.73364782333374,
-          "scores": {
-            "query_validity": 1,
-            "query_pattern_match": 1,
-            "visualization_correctness": 0,
-            "response_length": 528,
-            "has_recommendations": 0,
-            "input_tokens": 2658,
-            "output_tokens": 177,
-            "total_tokens": 2835,
-            "query_error": null,
-            "visualization_type": "db-table"
-          },
-          "metadata": {
-            "agent_type": "react",
-            "tools_used": [
-              "QueryDatabase",
-              "GetDatabaseInfo"
-            ],
-            "iterations": 2,
-            "sql_queries": [
-              "SELECT \"Attack Type\", COUNT(*) as count FROM attacks GROUP BY \"Attack Type\" ORDER BY count DESC LIMIT 5"
-            ]
-          }
-        },
-        {
-          "question_id": "q2",
-          "question": "What are the severity levels in the database?",
-          "category": "simple_query",
-          "response": "The severity levels present in the database are as follows:\n\n```db-table\n{\n  \"columns\": [\"Severity Level\"],\n  \"data\": [\n    {\"Severity Level\": \"Low\"},\n    {\"Severity Level\": \"Medium\"},\n    {\"Severity Level\": \"High\"}\n  ]\n}\n```\n\nThese levels indicate the potential impact of the attacks recorded in the database, helping prioritize response efforts.",
-          "response_time": 4.153868198394775,
-          "scores": {
-            "query_validity": 1,
-            "query_pattern_match": 0,
-            "visualization_correctness": 0,
-            "response_length": 347,
-            "has_recommendations": 0,
-            "input_tokens": 5366,
-            "output_tokens": 110,
-            "total_tokens": 5476,
-            "query_error": null,
-            "visualization_type": "db-table"
-          },
-          "metadata": {
-            "agent_type": "react",
-            "tools_used": [
-              "QueryDatabase",
-              "GetDatabaseInfo"
-            ],
-            "iterations": 3,
-            "sql_queries": [
-              "SELECT DISTINCT \"Severity Level\" FROM attacks"
-            ]
-          }
-        },
-        {
-          "question_id": "q3",
-          "question": "List all unique protocols in the attacks database",
-          "category": "simple_query",
-          "response": "Here are the unique protocols found in the attacks database:\n\n```db-table\n{\n  \"columns\": [\"Protocol\"],\n  \"data\": [\n    {\"Protocol\": \"ICMP\"},\n    {\"Protocol\": \"UDP\"},\n    {\"Protocol\": \"TCP\"}\n  ]\n}\n``` \n\nThese protocols represent the types of network communication used in the recorded attacks.",
-          "response_time": 3.074665069580078,
-          "scores": {
-            "query_validity": 1,
-            "query_pattern_match": 1,
-            "visualization_correctness": 1,
-            "response_length": 292,
-            "has_recommendations": 0,
-            "input_tokens": 2597,
-            "output_tokens": 90,
-            "total_tokens": 2687,
-            "query_error": null,
-            "visualization_type": "db-table"
-          },
-          "metadata": {
-            "agent_type": "react",
-            "tools_used": [
-              "QueryDatabase",
-              "GetDatabaseInfo"
-            ],
-            "iterations": 2,
-            "sql_queries": [
-              "SELECT DISTINCT \"Protocol\" FROM attacks"
-            ]
-          }
+
+        // Transform raw evaluation results to expected format
+        function transformData() {
+            const total_dialogues = evaluationData[0]?.total_dialogues || 0;
+            const total_turns = evaluationData[0]?.total_turns || 0;
+
+            const summary = {
+                total_dialogues: total_dialogues,
+                total_turns: total_turns,
+                total_configurations: evaluationData.length,
+                evaluation_date: evaluationData[0]?.evaluation_date || new Date().toISOString()
+            };
+
+            const formatted_results = [];
+            for (const result of evaluationData) {
+                // Flatten all turns from all dialogues
+                const all_turns = [];
+                for (const dialogue of result.dialogues) {
+                    for (const turn of dialogue.turns) {
+                        const turn_copy = { ...turn };
+                        turn_copy.dialogue_id = dialogue.dialogue_id;
+                        turn_copy.dialogue_title = dialogue.title;
+                        turn_copy.category = dialogue.category;
+                        all_turns.push(turn_copy);
+                    }
+                }
+
+                formatted_results.push({
+                    agent_name: result.agent_name,
+                    agent_type: result.agent_name.toLowerCase().replace('-', '_'),
+                    visualizations_enabled: result.visualizations_enabled,
+                    avg_response_time: result.aggregate_scores.avg_response_time,
+                    aggregate_scores: result.aggregate_scores,
+                    responses: all_turns,
+                    dialogues: result.dialogues
+                });
+            }
+
+            evaluationData = {
+                summary: summary,
+                results: formatted_results
+            };
         }
-      ]
-    }
-  ]
-};
 
         // Helper function to get score class
         function getScoreClass(value) {
@@ -694,12 +634,16 @@
                 current.aggregate_scores.avg_total_tokens < best.aggregate_scores.avg_total_tokens ? current : best
             );
 
+            const bestQuality = evaluationData.results.reduce((best, current) =>
+                (current.aggregate_scores.avg_overall_quality || 0) > (best.aggregate_scores.avg_overall_quality || 0) ? current : best
+            );
+
             container.innerHTML = `
                 <div class="metrics-grid">
                     <div class="metric-card">
-                        <h3>Total Questions</h3>
-                        <div class="value">${evaluationData.summary.total_questions}</div>
-                        <div class="label">Test Questions</div>
+                        <h3>Total Dialogues</h3>
+                        <div class="value">${evaluationData.summary.total_dialogues}</div>
+                        <div class="label">${evaluationData.summary.total_turns} Total Turns</div>
                     </div>
                     <div class="metric-card">
                         <h3>Agents Tested</h3>
@@ -712,6 +656,20 @@
                         <div class="label">${(bestOverall.aggregate_scores.query_validity_rate * 100).toFixed(0)}% Valid</div>
                     </div>
                     <div class="metric-card">
+                        <h3>Highest Quality (Judge)</h3>
+                        <div class="value">${bestQuality.agent_name}</div>
+                        <div class="label">${(bestQuality.aggregate_scores.avg_overall_quality || 0).toFixed(2)}/5 Rating</div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Best Context Awareness</h3>
+                        <div class="value">${evaluationData.results.reduce((best, current) =>
+                            current.aggregate_scores.context_awareness_rate > best.aggregate_scores.context_awareness_rate ? current : best
+                        ).agent_name}</div>
+                        <div class="label">${(evaluationData.results.reduce((best, current) =>
+                            current.aggregate_scores.context_awareness_rate > best.aggregate_scores.context_awareness_rate ? current : best
+                        ).aggregate_scores.context_awareness_rate * 100).toFixed(0)}% Context Aware</div>
+                    </div>
+                    <div class="metric-card">
                         <h3>Fastest Agent</h3>
                         <div class="value">${fastestAgent.agent_name}</div>
                         <div class="label">${fastestAgent.avg_response_time.toFixed(2)}s avg</div>
@@ -719,7 +677,7 @@
                     <div class="metric-card">
                         <h3>Most Efficient</h3>
                         <div class="value">${mostEfficient.agent_name}</div>
-                        <div class="label">${Math.round(mostEfficient.aggregate_scores.avg_total_tokens)} tokens/query</div>
+                        <div class="label">${Math.round(mostEfficient.aggregate_scores.avg_total_tokens)} tokens/turn</div>
                     </div>
                 </div>
             `;
@@ -730,15 +688,29 @@
             const container = document.getElementById('comparison-table');
             const rows = evaluationData.results.map(result => {
                 const scores = result.aggregate_scores;
+                const factuality = scores.avg_factuality || 0;
+                const helpfulness = scores.avg_helpfulness || 0;
+                const quality = scores.avg_overall_quality || 0;
+
+                // Helper to get score class for judge ratings (out of 5)
+                const getJudgeClass = (val) => {
+                    if (val >= 4) return 'high';
+                    if (val >= 3) return 'medium';
+                    return 'low';
+                };
+
                 return `
                     <tr>
                         <td><div class="agent-label">${result.agent_name}</div></td>
                         <td><span class="score ${getScoreClass(scores.query_validity_rate)}">${(scores.query_validity_rate * 100).toFixed(1)}%</span></td>
                         <td><span class="score ${getScoreClass(scores.query_pattern_match_rate)}">${(scores.query_pattern_match_rate * 100).toFixed(1)}%</span></td>
                         <td><span class="score ${getScoreClass(scores.visualization_correctness_rate)}">${(scores.visualization_correctness_rate * 100).toFixed(1)}%</span></td>
+                        <td><span class="score ${getScoreClass(scores.context_awareness_rate)}">${(scores.context_awareness_rate * 100).toFixed(1)}%</span></td>
+                        <td><span class="score ${getJudgeClass(factuality)}">${factuality > 0 ? factuality.toFixed(2) : 'N/A'}</span></td>
+                        <td><span class="score ${getJudgeClass(helpfulness)}">${helpfulness > 0 ? helpfulness.toFixed(2) : 'N/A'}</span></td>
+                        <td><span class="score ${getJudgeClass(quality)}">${quality > 0 ? quality.toFixed(2) : 'N/A'}</span></td>
                         <td>${result.avg_response_time.toFixed(2)}s</td>
                         <td>${Math.round(scores.avg_total_tokens).toLocaleString()}</td>
-                        <td><span class="score ${getScoreClass(scores.recommendations_rate)}">${(scores.recommendations_rate * 100).toFixed(1)}%</span></td>
                     </tr>
                 `;
             }).join('');
@@ -751,15 +723,21 @@
                             <th>Query Validity</th>
                             <th>Pattern Match</th>
                             <th>Viz Correct</th>
+                            <th>Context Aware</th>
+                            <th>Factuality</th>
+                            <th>Helpfulness</th>
+                            <th>Quality</th>
                             <th>Avg Time</th>
                             <th>Avg Tokens</th>
-                            <th>Recommendations</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${rows}
                     </tbody>
                 </table>
+                <p style="margin-top: 15px; color: #718096; font-size: 0.9rem;">
+                    * Factuality, Helpfulness, and Quality rated by LLM Judge on 1-5 scale
+                </p>
             `;
         }
 
@@ -787,6 +765,11 @@
                             label: 'Visualization Correct',
                             data: evaluationData.results.map(r => r.aggregate_scores.visualization_correctness_rate * 100),
                             backgroundColor: 'rgba(72, 187, 120, 0.8)'
+                        },
+                        {
+                            label: 'Context Awareness',
+                            data: evaluationData.results.map(r => r.aggregate_scores.context_awareness_rate * 100),
+                            backgroundColor: 'rgba(246, 211, 101, 0.8)'
                         }
                     ]
                 },
@@ -954,6 +937,63 @@
             });
         }
 
+        // Create LLM judge ratings chart
+        function createJudgeChart() {
+            const ctx = document.getElementById('judgeChart').getContext('2d');
+            const labels = evaluationData.results.map(r => r.agent_name);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Factuality',
+                            data: evaluationData.results.map(r => r.aggregate_scores.avg_factuality || 0),
+                            backgroundColor: 'rgba(102, 126, 234, 0.8)'
+                        },
+                        {
+                            label: 'Helpfulness',
+                            data: evaluationData.results.map(r => r.aggregate_scores.avg_helpfulness || 0),
+                            backgroundColor: 'rgba(72, 187, 120, 0.8)'
+                        },
+                        {
+                            label: 'Overall Quality',
+                            data: evaluationData.results.map(r => r.aggregate_scores.avg_overall_quality || 0),
+                            backgroundColor: 'rgba(246, 211, 101, 0.8)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 5,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(1);
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '/5';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
         // Render cost table
         function renderCostTable() {
             const container = document.getElementById('cost-table');
@@ -1044,6 +1084,17 @@
                         badges.push(vizCorrect ?
                             '<span class="score-badge success">Correct Viz</span>' :
                             '<span class="score-badge warning">Wrong Viz</span>');
+
+                        // Add judge ratings if available
+                        if (r.judge_ratings && r.judge_ratings.judge_success) {
+                            const factuality = r.judge_ratings.factuality;
+                            const helpfulness = r.judge_ratings.helpfulness;
+                            const quality = r.judge_ratings.overall_quality;
+
+                            badges.push(`<span class="score-badge info">Factuality: ${factuality}/5</span>`);
+                            badges.push(`<span class="score-badge info">Helpful: ${helpfulness}/5</span>`);
+                            badges.push(`<span class="score-badge info">Quality: ${quality}/5</span>`);
+                        }
                     }
 
                     return `
@@ -1066,10 +1117,35 @@
                                     <span class="value">${r.scores?.visualization_type || 'none'}</span>
                                 </div>
                             </div>
+                            ${r.generated_sql ? `
+                                <div style="margin-top: 10px;">
+                                    <strong style="font-size: 0.9rem;">Generated SQL Query:</strong>
+                                    <pre style="background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 4px; font-size: 0.8rem; overflow-x: auto; margin-top: 5px;">${r.generated_sql}</pre>
+                                </div>
+                            ` : ''}
+
+                            ${r.expected_query_pattern ? `
+                                <div style="margin-top: 10px;">
+                                    <strong style="font-size: 0.9rem;">Expected Pattern (Regex):</strong>
+                                    <pre style="background: #edf2f7; color: #2d3748; padding: 10px; border-radius: 4px; font-size: 0.8rem; overflow-x: auto; margin-top: 5px; border: 1px solid #cbd5e0;">${r.expected_query_pattern}</pre>
+                                </div>
+                            ` : ''}
+
                             <div class="response-preview" id="preview-${qId}-${r.agent}">
                                 ${hasError ? 'Error: ' + r.error : (r.response || 'No response').substring(0, 200)}...
                             </div>
                             <button class="expand-btn" onclick="togglePreview('${qId}-${r.agent}')">Show Full Response</button>
+
+                            ${r.judge_ratings && r.judge_ratings.judge_success ? `
+                                <div style="margin-top: 10px; padding: 10px; background: #edf2f7; border-left: 3px solid #667eea; border-radius: 4px; font-size: 0.85rem;">
+                                    <strong>Judge Feedback:</strong>
+                                    <div style="margin-top: 5px;">
+                                        <div><strong>Factuality:</strong> ${r.judge_ratings.factuality_reasoning}</div>
+                                        <div style="margin-top: 3px;"><strong>Helpfulness:</strong> ${r.judge_ratings.helpfulness_reasoning}</div>
+                                        <div style="margin-top: 3px;"><strong>Overall:</strong> ${r.judge_ratings.overall_reasoning}</div>
+                                    </div>
+                                </div>
+                            ` : ''}
                         </div>
                     `;
                 }).join('');
@@ -1114,6 +1190,20 @@
                         event.target.textContent = 'Hide Full Response';
                     }
                 }
+            }
+        }
+
+        // Toggle SQL details row
+        function toggleSQLDetails(rowId) {
+            const row = document.getElementById(rowId);
+            const button = event.target;
+
+            if (row.style.display === 'none') {
+                row.style.display = 'table-row';
+                button.textContent = 'Hide SQL';
+            } else {
+                row.style.display = 'none';
+                button.textContent = 'Show SQL';
             }
         }
 
@@ -1175,16 +1265,295 @@
             container.innerHTML = categoriesHtml;
         }
 
+        // Render individual results table
+        function renderIndividualResultsTable() {
+            const container = document.getElementById('individual-results-table');
+
+            // Collect all turns from all agents
+            const allTurns = [];
+            evaluationData.results.forEach(result => {
+                result.dialogues.forEach(dialogue => {
+                    dialogue.turns.forEach(turn => {
+                        allTurns.push({
+                            agent: result.agent_name,
+                            dialogue_id: dialogue.dialogue_id,
+                            dialogue_title: dialogue.title,
+                            category: dialogue.category,
+                            turn_id: turn.turn_id,
+                            user_message: turn.user_message,
+                            response_time: turn.response_time,
+                            scores: turn.scores,
+                            judge_ratings: turn.judge_ratings,
+                            error: turn.error,
+                            is_followup: turn.is_followup
+                        });
+                    });
+                });
+            });
+
+            // Create table rows
+            const rows = allTurns.map((turn, index) => {
+                const hasError = turn.error ? true : false;
+                const scores = turn.scores || {};
+                const judge = turn.judge_ratings || {};
+
+                const queryValid = scores.query_validity === 1;
+                const patternMatch = scores.query_pattern_match === 1;
+                const vizCorrect = scores.visualization_correctness === 1;
+                const contextAware = scores.context_awareness === 1;
+
+                const factuality = judge.factuality || 0;
+                const helpfulness = judge.helpfulness || 0;
+                const quality = judge.overall_quality || 0;
+
+                // Truncate user message for table
+                const truncatedMsg = turn.user_message.length > 80
+                    ? turn.user_message.substring(0, 80) + '...'
+                    : turn.user_message;
+
+                const rowId = `all-row-${turn.dialogue_id}-${turn.turn_id}-${turn.agent.replace(/[^a-zA-Z0-9]/g, '')}`;
+
+                return `
+                    <tr style="${index % 2 === 0 ? 'background: #f7fafc;' : ''}">
+                        <td style="font-weight: 600;">${turn.agent}</td>
+                        <td><span style="font-size: 0.85rem; color: #718096;">${turn.dialogue_id.toUpperCase()}</span></td>
+                        <td style="max-width: 300px; font-size: 0.9rem;">${truncatedMsg}</td>
+                        <td style="text-align: center;">${turn.turn_id}</td>
+                        <td style="text-align: center;">
+                            <span class="score-badge ${turn.is_followup ? 'info' : 'success'}" style="font-size: 0.7rem;">
+                                ${turn.is_followup ? 'Follow-up' : 'First'}
+                            </span>
+                        </td>
+                        <td style="text-align: center;">
+                            ${hasError ?
+                                '<span class="score-badge error" style="font-size: 0.7rem;">ERROR</span>' :
+                                (queryValid ? '✅' : '❌')
+                            }
+                        </td>
+                        <td style="text-align: center;">${patternMatch ? '✅' : '❌'}</td>
+                        <td style="text-align: center;">${vizCorrect ? '✅' : '❌'}</td>
+                        <td style="text-align: center;">${contextAware ? '✅' : '❌'}</td>
+                        <td style="text-align: center; font-weight: 600; color: ${factuality >= 4 ? '#48bb78' : factuality >= 3 ? '#ed8936' : '#f56565'};">
+                            ${factuality > 0 ? factuality.toFixed(1) : 'N/A'}
+                        </td>
+                        <td style="text-align: center; font-weight: 600; color: ${helpfulness >= 4 ? '#48bb78' : helpfulness >= 3 ? '#ed8936' : '#f56565'};">
+                            ${helpfulness > 0 ? helpfulness.toFixed(1) : 'N/A'}
+                        </td>
+                        <td style="text-align: center; font-weight: 600; color: ${quality >= 4 ? '#48bb78' : quality >= 3 ? '#ed8936' : '#f56565'};">
+                            ${quality > 0 ? quality.toFixed(1) : 'N/A'}
+                        </td>
+                        <td style="text-align: center;">${turn.response_time?.toFixed(2) || 'N/A'}s</td>
+                        <td style="text-align: center;">${scores.total_tokens?.toLocaleString() || '0'}</td>
+                        <td style="text-align: center;">
+                            <button class="expand-btn" onclick="toggleSQLDetails('${rowId}')" style="padding: 4px 8px; font-size: 0.75rem;">
+                                Show SQL
+                            </button>
+                        </td>
+                    </tr>
+                    <tr id="${rowId}" style="display: none;">
+                        <td colspan="15" style="background: #f7fafc; padding: 15px;">
+                            ${turn.generated_sql ? `
+                                <div style="margin-bottom: 10px;">
+                                    <strong>Generated SQL:</strong>
+                                    <pre style="background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 4px; font-size: 0.75rem; overflow-x: auto; margin-top: 5px;">${turn.generated_sql}</pre>
+                                </div>
+                            ` : '<div><em>No SQL generated</em></div>'}
+                            ${turn.expected_query_pattern ? `
+                                <div>
+                                    <strong>Expected Pattern (Regex):</strong>
+                                    <pre style="background: #edf2f7; color: #2d3748; padding: 10px; border-radius: 4px; font-size: 0.75rem; overflow-x: auto; margin-top: 5px; border: 1px solid #cbd5e0;">${turn.expected_query_pattern}</pre>
+                                </div>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <div style="overflow-x: auto;">
+                    <table class="comparison-table" style="font-size: 0.9rem;">
+                        <thead>
+                            <tr>
+                                <th style="min-width: 100px;">Agent</th>
+                                <th style="min-width: 60px;">Dialogue</th>
+                                <th style="min-width: 300px;">User Question</th>
+                                <th style="min-width: 50px;">Turn #</th>
+                                <th style="min-width: 80px;">Type</th>
+                                <th style="min-width: 80px;">Valid SQL</th>
+                                <th style="min-width: 80px;">Pattern</th>
+                                <th style="min-width: 80px;">Viz</th>
+                                <th style="min-width: 80px;">Context</th>
+                                <th style="min-width: 80px;">Factual</th>
+                                <th style="min-width: 80px;">Helpful</th>
+                                <th style="min-width: 80px;">Quality</th>
+                                <th style="min-width: 80px;">Time</th>
+                                <th style="min-width: 80px;">Tokens</th>
+                                <th style="min-width: 80px;">SQL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows}
+                        </tbody>
+                    </table>
+                </div>
+                <p style="margin-top: 15px; color: #718096; font-size: 0.9rem;">
+                    * Factual, Helpful, and Quality columns show LLM Judge ratings (1-5 scale)
+                    <br>* ✅ = Pass, ❌ = Fail for automated metrics
+                    <br>* Click "Show SQL" to see generated query vs expected pattern
+                </p>
+            `;
+        }
+
+        // Render per-agent detailed tables
+        function renderPerAgentTables() {
+            const container = document.getElementById('per-agent-tables');
+
+            const agentTables = evaluationData.results.map(result => {
+                // Collect all turns for this agent
+                const turns = [];
+                result.dialogues.forEach(dialogue => {
+                    dialogue.turns.forEach(turn => {
+                        turns.push({
+                            dialogue_id: dialogue.dialogue_id,
+                            dialogue_title: dialogue.title,
+                            category: dialogue.category,
+                            ...turn
+                        });
+                    });
+                });
+
+                // Create rows for this agent
+                const rows = turns.map((turn, index) => {
+                    const hasError = turn.error ? true : false;
+                    const scores = turn.scores || {};
+                    const judge = turn.judge_ratings || {};
+
+                    const queryValid = scores.query_validity === 1;
+                    const patternMatch = scores.query_pattern_match === 1;
+                    const vizCorrect = scores.visualization_correctness === 1;
+                    const contextAware = scores.context_awareness === 1;
+
+                    const factuality = judge.factuality || 0;
+                    const helpfulness = judge.helpfulness || 0;
+                    const quality = judge.overall_quality || 0;
+
+                    const rowId = `agent-row-${turn.dialogue_id}-${turn.turn_id}-${index}`;
+
+                    return `
+                        <tr style="${index % 2 === 0 ? 'background: #f7fafc;' : ''}">
+                            <td style="text-align: center;">${turn.dialogue_id.toUpperCase()}</td>
+                            <td style="text-align: center;">${turn.turn_id}</td>
+                            <td style="max-width: 400px; font-size: 0.9rem;">${turn.user_message}</td>
+                            <td style="text-align: center;">
+                                ${hasError ?
+                                    '<span class="score-badge error" style="font-size: 0.7rem;">ERROR</span>' :
+                                    (queryValid ? '✅' : '❌')
+                                }
+                            </td>
+                            <td style="text-align: center;">${patternMatch ? '✅' : '❌'}</td>
+                            <td style="text-align: center;">${vizCorrect ? '✅' : '❌'}</td>
+                            <td style="text-align: center;">${contextAware ? '✅' : '❌'}</td>
+                            <td style="text-align: center; font-weight: 600; color: ${factuality >= 4 ? '#48bb78' : factuality >= 3 ? '#ed8936' : '#f56565'};">
+                                ${factuality > 0 ? factuality.toFixed(1) : 'N/A'}
+                            </td>
+                            <td style="text-align: center; font-weight: 600; color: ${helpfulness >= 4 ? '#48bb78' : helpfulness >= 3 ? '#ed8936' : '#f56565'};">
+                                ${helpfulness > 0 ? helpfulness.toFixed(1) : 'N/A'}
+                            </td>
+                            <td style="text-align: center; font-weight: 600; color: ${quality >= 4 ? '#48bb78' : quality >= 3 ? '#ed8936' : '#f56565'};">
+                                ${quality > 0 ? quality.toFixed(1) : 'N/A'}
+                            </td>
+                            <td style="text-align: center;">${turn.response_time?.toFixed(2) || 'N/A'}s</td>
+                            <td style="text-align: center;">${scores.total_tokens?.toLocaleString() || '0'}</td>
+                            <td style="text-align: center;">
+                                <button class="expand-btn" onclick="toggleSQLDetails('${rowId}')" style="padding: 4px 8px; font-size: 0.75rem;">
+                                    Show SQL
+                                </button>
+                            </td>
+                        </tr>
+                        <tr id="${rowId}" style="display: none;">
+                            <td colspan="13" style="background: #f7fafc; padding: 15px;">
+                                ${turn.generated_sql ? `
+                                    <div style="margin-bottom: 10px;">
+                                        <strong>Generated SQL:</strong>
+                                        <pre style="background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 4px; font-size: 0.75rem; overflow-x: auto; margin-top: 5px;">${turn.generated_sql}</pre>
+                                    </div>
+                                ` : '<div><em>No SQL generated</em></div>'}
+                                ${turn.expected_query_pattern ? `
+                                    <div>
+                                        <strong>Expected Pattern (Regex):</strong>
+                                        <pre style="background: #edf2f7; color: #2d3748; padding: 10px; border-radius: 4px; font-size: 0.75rem; overflow-x: auto; margin-top: 5px; border: 1px solid #cbd5e0;">${turn.expected_query_pattern}</pre>
+                                    </div>
+                                ` : ''}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Calculate agent summary stats
+                const validTurns = turns.filter(t => !t.error);
+                const avgFactuality = validTurns.reduce((sum, t) => sum + (t.judge_ratings?.factuality || 0), 0) / validTurns.length;
+                const avgHelpfulness = validTurns.reduce((sum, t) => sum + (t.judge_ratings?.helpfulness || 0), 0) / validTurns.length;
+                const avgQuality = validTurns.reduce((sum, t) => sum + (t.judge_ratings?.overall_quality || 0), 0) / validTurns.length;
+
+                return `
+                    <div class="category-card">
+                        <h3 style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>${result.agent_name} - Detailed Results</span>
+                            <span style="font-size: 0.9rem; font-weight: normal; color: #718096;">
+                                Avg Judge Scores: Factual ${avgFactuality.toFixed(2)}, Helpful ${avgHelpfulness.toFixed(2)}, Quality ${avgQuality.toFixed(2)}
+                            </span>
+                        </h3>
+                        <div style="overflow-x: auto; margin-top: 15px;">
+                            <table class="comparison-table" style="font-size: 0.85rem;">
+                                <thead>
+                                    <tr>
+                                        <th>Dialogue</th>
+                                        <th>Turn</th>
+                                        <th style="min-width: 400px;">Question</th>
+                                        <th>Valid SQL</th>
+                                        <th>Pattern</th>
+                                        <th>Viz</th>
+                                        <th>Context</th>
+                                        <th>Factual</th>
+                                        <th>Helpful</th>
+                                        <th>Quality</th>
+                                        <th>Time</th>
+                                        <th>Tokens</th>
+                                        <th>SQL</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${rows}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = agentTables;
+        }
+
         // Initialize all visualizations
-        renderOverview();
-        renderComparisonTable();
-        createValidityChart();
-        createTokenChart();
-        createTimeChart();
-        createCostChart();
-        renderCostTable();
-        renderQuestionResults();
-        renderCategoryResults();
+        function initializeVisualizations() {
+            renderOverview();
+            renderComparisonTable();
+            createValidityChart();
+            createTokenChart();
+            createTimeChart();
+            createCostChart();
+            createJudgeChart();
+            renderCostTable();
+            renderQuestionResults();
+            renderCategoryResults();
+            renderIndividualResultsTable();
+            renderPerAgentTables();
+        }
+
+        // Load data when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            loadEvaluationData();
+        });
     </script>
 </body>
 </html>

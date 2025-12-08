@@ -350,7 +350,7 @@ const ChatComponent: React.FC = () => {
                   onScroll={() => {}}
                   isTyping={isTyping}
                   onMessagesLoad={onMessagesLoad}
-                  chatDescription={getChatDescription(agentType, showVisualizations)}
+                  chatDescription={getChatDescription(agentType)}
                 />
               </div>
               {UI_CONFIG?.features?.enableHexagons && (

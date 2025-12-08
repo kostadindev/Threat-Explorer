@@ -117,8 +117,8 @@ Example:
 ================================================================================
 🔧 TOOL CALL: query_database
 📝 Query: SELECT * FROM attacks WHERE "Attack Type" = 'Malware'
-⚠️  Added LIMIT 50 to query
-🔍 Executing SQL: SELECT * FROM attacks WHERE "Attack Type" = 'Malware' LIMIT 50
+⚠️  Added LIMIT 20 to query
+🔍 Executing SQL: SELECT * FROM attacks WHERE "Attack Type" = 'Malware' LIMIT 20
 ✅ Query successful! Returned 50 rows
 📊 Sample result: {'Timestamp': '2023-05-30 06:33:58', 'Attack Type': 'Malware', ...}
 ================================================================================
@@ -254,8 +254,8 @@ Here's what a complete request looks like in the logs:
 ================================================================================
 🔧 TOOL CALL: query_database
 📝 Query: SELECT COUNT(*) as count FROM attacks WHERE "Attack Type" = 'Malware'
-⚠️  Added LIMIT 50 to query
-🔍 Executing SQL: SELECT COUNT(*) as count FROM attacks WHERE "Attack Type" = 'Malware' LIMIT 50
+⚠️  Added LIMIT 20 to query
+🔍 Executing SQL: SELECT COUNT(*) as count FROM attacks WHERE "Attack Type" = 'Malware' LIMIT 20
 ✅ Query successful! Returned 1 rows
 📊 Sample result: {'count': '1234'}
 ================================================================================

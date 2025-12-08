@@ -45,232 +45,232 @@ load_dotenv()
 # ============================================================================
 
 EVALUATION_DIALOGUES = [
-    # ==================== DIALOGUE 1: COMPLEX THREAT CORRELATION ANALYSIS ====================
+    # ==================== DIALOGUE 1: BASIC ATTACK ANALYSIS ====================
     {
         "id": "d1",
-        "title": "Multi-Dimensional Threat Correlation",
-        "category": "advanced_analysis",
-        "description": "User performs complex correlation analysis across multiple attack attributes",
+        "title": "Basic Attack Type Analysis",
+        "category": "basic_analysis",
+        "description": "User performs simple attack counting and filtering",
         "turns": [
             {
                 "turn_id": 1,
-                "user_message": "Identify attack types that appear more frequently during high anomaly score periods (anomaly score > 70) and show their correlation with specific protocols",
-                "expected_query_pattern": r'SELECT.*"Attack Type".*Protocol.*COUNT.*WHERE.*"Anomaly Scores".*>\s*70.*GROUP BY',
-                "expected_visualization": "db-table",
+                "user_message": "Show me the top 5 attack types and how many times each occurred",
+                "expected_query_pattern": r'SELECT.*"Attack Type".*COUNT.*GROUP BY.*"Attack Type".*LIMIT\s+5',
+                "expected_visualization": "db-chart",
                 "rubric": {
-                    "query_validity": "Must filter by anomaly scores > 70 and group by attack type and protocol",
-                    "correctness": "Must correlate attack types with protocols under high anomaly conditions",
-                    "visualization": "Should use table or grouped chart for multi-dimensional data"
+                    "query_validity": "Must group by attack type, count occurrences, and limit to 5",
+                    "correctness": "Must return top 5 attack types by count",
+                    "visualization": "Should use chart or pie for distribution"
                 }
             },
             {
                 "turn_id": 2,
-                "user_message": "From those results, which network segments are most vulnerable and what's the average packet length for attacks in each segment?",
-                "expected_query_pattern": r'SELECT.*"Network Segment".*(AVG|avg).*"Packet Length".*GROUP BY.*"Network Segment"',
+                "user_message": "What severity levels do these attacks have?",
+                "expected_query_pattern": r'SELECT.*"Severity Level".*COUNT',
                 "expected_visualization": "db-chart",
                 "rubric": {
-                    "query_validity": "Must calculate average packet length per network segment",
-                    "context_awareness": "Should maintain high anomaly score filter and attack type context",
-                    "visualization": "Should use chart for comparative analysis"
-                }
-            },
-            {
-                "turn_id": 3,
-                "user_message": "For the most vulnerable segment, show me a breakdown of malware indicators and their corresponding IDS/IPS alert patterns",
-                "expected_query_pattern": r'SELECT.*"Malware Indicators".*"IDS/IPS Alerts".*(WHERE.*"Network Segment"|GROUP BY)',
-                "expected_visualization": "db-table",
-                "rubric": {
-                    "query_validity": "Must filter by specific network segment and correlate malware indicators with IDS/IPS alerts",
-                    "context_awareness": "Should identify and filter by the most vulnerable segment from previous query",
-                    "visualization": "Should use table for detailed correlation data"
-                }
-            }
-        ]
-    },
-
-    # ==================== DIALOGUE 2: TEMPORAL PATTERN AND RISK ASSESSMENT ====================
-    {
-        "id": "d2",
-        "title": "Temporal Attack Pattern & Risk Scoring",
-        "category": "temporal_risk_analysis",
-        "description": "User analyzes time-based attack patterns with risk assessment",
-        "turns": [
-            {
-                "turn_id": 1,
-                "user_message": "Show me the distribution of critical and high severity attacks across different traffic types, and calculate what percentage each traffic type represents",
-                "expected_query_pattern": r'SELECT.*"Traffic Type".*"Severity Level".*(Critical|High).*COUNT',
-                "expected_visualization": "db-chart",
-                "rubric": {
-                    "query_validity": "Must filter by Critical and High severity and group by traffic type",
-                    "correctness": "Must show distribution and ideally calculate percentages",
-                    "visualization": "Should use chart or pie for distribution visualization"
-                }
-            },
-            {
-                "turn_id": 2,
-                "user_message": "For the traffic type with the most critical attacks, what are the top source ports being exploited and what actions were taken in response?",
-                "expected_query_pattern": r'SELECT.*"Source Port".*"Action Taken".*COUNT',
-                "expected_visualization": "db-table",
-                "rubric": {
-                    "query_validity": "Must filter by specific traffic type and group by source port",
-                    "context_awareness": "Should identify and use the traffic type with most critical attacks from previous query",
-                    "correctness": "Must show source ports and corresponding actions taken",
-                    "visualization": "Should use table for detailed breakdown"
-                }
-            },
-            {
-                "turn_id": 3,
-                "user_message": "Based on the response actions, which ones were most effective and what's the ratio of successful vs unsuccessful mitigations for each attack signature?",
-                "expected_query_pattern": r'SELECT.*"Attack Signature".*"Action Taken"',
-                "expected_visualization": "db-chart",
-                "rubric": {
-                    "query_validity": "Must correlate attack signatures with action effectiveness",
-                    "context_awareness": "Should maintain traffic type and source port context from previous queries",
-                    "visualization": "Should use chart for effectiveness comparison"
-                }
-            }
-        ]
-    },
-{
-        "id": "d3",
-        "title": "Geographic Distribution & Forensic Analysis",
-        "category": "forensic_analysis",
-        "description": "User performs geographic correlation with attack signature forensics",
-        "turns": [
-            {
-                "turn_id": 1,
-                "user_message": "Analyze attacks by geo-location data and identify which locations have the highest concentration of attacks with non-standard packet types",
-                "expected_query_pattern": r'SELECT.*"Geo-location Data".*"Packet Type".*COUNT.*GROUP BY',
-                "expected_visualization": "db-chart",
-                "rubric": {
-                    "query_validity": "Must group by geo-location and packet type",
-                    "correctness": "Must identify geographic distribution of non-standard packet attacks",
-                    "visualization": "Should use chart for geographic distribution"
-                }
-            },
-            {
-                "turn_id": 2,
-                "user_message": "For the location with the highest attack volume, correlate the attack signatures with destination ports and show which ports are most targeted",
-                "expected_query_pattern": r'SELECT.*"Destination Port".*"Attack Signature".*COUNT',
-                "expected_visualization": "db-table",
-                "rubric": {
-                    "query_validity": "Must filter by specific geo-location and analyze destination ports with signatures",
-                    "context_awareness": "Should use the location with highest attack volume from previous query",
-                    "correctness": "Must correlate attack signatures with destination ports",
-                    "visualization": "Should use table or chart for port analysis"
-                }
-            },
-            {
-                "turn_id": 3,
-                "user_message": "Compare the firewall logs and alerts/warnings for these targeted ports - are there any gaps in detection where attacks occurred but minimal alerts were generated?",
-                "expected_query_pattern": r'SELECT.*"Firewall Logs".*"Alerts/Warnings"',
-                "expected_visualization": "db-table",
-                "rubric": {
-                    "query_validity": "Must correlate firewall logs with alerts/warnings",
-                    "context_awareness": "Should maintain geo-location and destination port context",
-                    "correctness": "Must identify detection gaps by comparing logs to alerts",
-                    "visualization": "Should use table for detailed forensic comparison"
-                }
-            }
-        ]
-    },
-
-    # ==================== DIALOGUE 5: DRILL-DOWN INVESTIGATION ====================
-    {
-        "id": "d5",
-        "title": "Drill-Down Investigation",
-        "category": "drill_down",
-        "description": "User progressively narrows focus from broad to specific",
-        "turns": [
-            {
-                "turn_id": 1,
-                "user_message": "List all unique protocols in the attacks database",
-                "expected_query_pattern": r'SELECT.*DISTINCT.*"Protocol"',
-                "expected_visualization": "db-table",
-                "rubric": {
-                    "query_validity": "Must use DISTINCT or GROUP BY for unique values",
-                    "correctness": "Must return unique protocols",
-                    "visualization": "Should use table or chart"
-                }
-            },
-            {
-                "turn_id": 2,
-                "user_message": "Show me all TCP attacks",
-                "expected_query_pattern": r'SELECT.*"Protocol".*TCP',
-                "expected_visualization": "db-table",
-                "rubric": {
-                    "query_validity": "Must filter by Protocol = 'TCP'",
-                    "context_awareness": "Should reference TCP from previous results",
-                    "visualization": "Should use table for detailed records"
-                }
-            },
-            {
-                "turn_id": 3,
-                "user_message": "What's the breakdown by attack type for these?",
-                "expected_query_pattern": r'SELECT.*"Attack Type".*COUNT.*"Protocol".*TCP',
-                "expected_visualization": "db-pie",
-                "rubric": {
-                    "query_validity": "Must aggregate attack types with TCP filter",
-                    "context_awareness": "Must maintain TCP protocol filter from previous turn",
-                    "visualization": "Should use pie or bar chart for breakdown"
-                }
-            },
-            {
-                "turn_id": 4,
-                "user_message": "Show me the top 5 destination ports for the most common attack type",
-                "expected_query_pattern": r'SELECT.*"Destination Port".*COUNT.*LIMIT\s+5',
-                "expected_visualization": "db-chart",
-                "rubric": {
-                    "query_validity": "Must aggregate by destination port with LIMIT 5",
-                    "context_awareness": "Should filter by most common attack type from previous result",
-                    "visualization": "Should use bar chart for ranking"
-                }
-            }
-        ]
-    },
-
-    # ==================== DIALOGUE 4: TEMPORAL ANALYSIS ====================
-    {
-        "id": "d4",
-        "title": "Temporal Pattern Analysis",
-        "category": "temporal",
-        "description": "User analyzes time-based patterns with refinements",
-        "turns": [
-            {
-                "turn_id": 1, 
-                "user_message": "Show me the most recent 20 attacks",
-                "expected_query_pattern": r'SELECT.*ORDER BY.*"Timestamp".*DESC.*LIMIT\s+20',
-                "expected_visualization": "db-table",
-                "rubric": {
-                    "query_validity": "Must ORDER BY Timestamp DESC and LIMIT 20",
-                    "correctness": "Must return 20 most recent attacks",
-                    "visualization": "Should use table for time-series data"
-                }
-            },
-            {
-                "turn_id": 2,
-                "user_message": "What attack types appear in these recent attacks?",
-                "expected_query_pattern": r'SELECT.*"Attack Type".*COUNT',
-                "expected_visualization": "db-chart",
-                "rubric": {
-                    "query_validity": "Must aggregate attack types",
-                    "context_awareness": "Should maintain recency filter from previous query",
+                    "query_validity": "Must count by severity level",
+                    "context_awareness": "Should reference top attack types from previous query",
                     "visualization": "Should use chart for distribution"
                 }
             },
             {
                 "turn_id": 3,
-                "user_message": "Show me the source IPs for the most frequent attack type from that list",
-                "expected_query_pattern": r'SELECT.*"Source IP Address"',
+                "user_message": "Show me 10 examples of the most common attack type",
+                "expected_query_pattern": r'SELECT.*"Attack Type".*LIMIT\s+10',
                 "expected_visualization": "db-table",
                 "rubric": {
-                    "query_validity": "Must filter by specific attack type",
-                    "context_awareness": "Should use most common attack type from previous turn",
-                    "visualization": "Should use table for detailed IP data"
+                    "query_validity": "Must filter by the most common attack type and limit to 10",
+                    "context_awareness": "Should use the most common attack type from turn 1",
+                    "visualization": "Should use table for detailed records"
                 }
             }
         ]
-    }
+    },
+
+    # ==================== DIALOGUE 2: PROTOCOL INVESTIGATION ====================
+    {
+        "id": "d2",
+        "title": "Protocol-Based Investigation",
+        "category": "protocol_analysis",
+        "description": "User investigates attacks by protocol type",
+#         "turns": [
+#             {
+#                 "turn_id": 1,
+#                 "user_message": "Show me the distribution of critical and high severity attacks across different traffic types, and calculate what percentage each traffic type represents",
+#                 "expected_query_pattern": r'SELECT.*"Traffic Type".*"Severity Level".*(Critical|High).*COUNT',
+#                 "expected_visualization": "db-chart",
+#                 "rubric": {
+#                     "query_validity": "Must filter by Critical and High severity and group by traffic type",
+#                     "correctness": "Must show distribution and ideally calculate percentages",
+#                     "visualization": "Should use chart or pie for distribution visualization"
+#                 }
+#             },
+#             {
+#                 "turn_id": 2,
+#                 "user_message": "For the traffic type with the most critical attacks, what are the top source ports being exploited and what actions were taken in response?",
+#                 "expected_query_pattern": r'SELECT.*"Source Port".*"Action Taken".*COUNT',
+#                 "expected_visualization": "db-table",
+#                 "rubric": {
+#                     "query_validity": "Must filter by specific traffic type and group by source port",
+#                     "context_awareness": "Should identify and use the traffic type with most critical attacks from previous query",
+#                     "correctness": "Must show source ports and corresponding actions taken",
+#                     "visualization": "Should use table for detailed breakdown"
+#                 }
+#             },
+#             {
+#                 "turn_id": 3,
+#                 "user_message": "Based on the response actions, which ones were most effective and what's the ratio of successful vs unsuccessful mitigations for each attack signature?",
+#                 "expected_query_pattern": r'SELECT.*"Attack Signature".*"Action Taken"',
+#                 "expected_visualization": "db-chart",
+#                 "rubric": {
+#                     "query_validity": "Must correlate attack signatures with action effectiveness",
+#                     "context_awareness": "Should maintain traffic type and source port context from previous queries",
+#                     "visualization": "Should use chart for effectiveness comparison"
+#                 }
+#             }
+#         ]
+#     },
+# {
+#         "id": "d3",
+#         "title": "Geographic Distribution & Forensic Analysis",
+#         "category": "forensic_analysis",
+#         "description": "User performs geographic correlation with attack signature forensics",
+#         "turns": [
+#             {
+#                 "turn_id": 1,
+#                 "user_message": "Analyze attacks by geo-location data and identify which locations have the highest concentration of attacks with non-standard packet types",
+#                 "expected_query_pattern": r'SELECT.*"Geo-location Data".*"Packet Type".*COUNT.*GROUP BY',
+#                 "expected_visualization": "db-chart",
+#                 "rubric": {
+#                     "query_validity": "Must group by geo-location and packet type",
+#                     "correctness": "Must identify geographic distribution of non-standard packet attacks",
+#                     "visualization": "Should use chart for geographic distribution"
+#                 }
+#             },
+#             {
+#                 "turn_id": 2,
+#                 "user_message": "For the location with the highest attack volume, correlate the attack signatures with destination ports and show which ports are most targeted",
+#                 "expected_query_pattern": r'SELECT.*"Destination Port".*"Attack Signature".*COUNT',
+#                 "expected_visualization": "db-table",
+#                 "rubric": {
+#                     "query_validity": "Must filter by specific geo-location and analyze destination ports with signatures",
+#                     "context_awareness": "Should use the location with highest attack volume from previous query",
+#                     "correctness": "Must correlate attack signatures with destination ports",
+#                     "visualization": "Should use table or chart for port analysis"
+#                 }
+#             },
+#             {
+#                 "turn_id": 3,
+#                 "user_message": "Compare the firewall logs and alerts/warnings for these targeted ports - are there any gaps in detection where attacks occurred but minimal alerts were generated?",
+#                 "expected_query_pattern": r'SELECT.*"Firewall Logs".*"Alerts/Warnings"',
+#                 "expected_visualization": "db-table",
+#                 "rubric": {
+#                     "query_validity": "Must correlate firewall logs with alerts/warnings",
+#                     "context_awareness": "Should maintain geo-location and destination port context",
+#                     "correctness": "Must identify detection gaps by comparing logs to alerts",
+#                     "visualization": "Should use table for detailed forensic comparison"
+#                 }
+#             }
+#         ]
+#     },
+
+#     # ==================== DIALOGUE 5: DRILL-DOWN INVESTIGATION ====================
+#     {
+#         "id": "d5",
+#         "title": "Drill-Down Investigation",
+#         "category": "drill_down",
+#         "description": "User progressively narrows focus from broad to specific",
+#         "turns": [
+#             {
+#                 "turn_id": 1,
+#                 "user_message": "List all unique protocols in the attacks database",
+#                 "expected_query_pattern": r'SELECT.*DISTINCT.*"Protocol"',
+#                 "expected_visualization": "db-table",
+#                 "rubric": {
+#                     "query_validity": "Must use DISTINCT or GROUP BY for unique values",
+#                     "correctness": "Must return unique protocols",
+#                     "visualization": "Should use table or chart"
+#                 }
+#             },
+#             {
+#                 "turn_id": 2,
+#                 "user_message": "Show me all TCP attacks",
+#                 "expected_query_pattern": r'SELECT.*"Protocol".*TCP',
+#                 "expected_visualization": "db-table",
+#                 "rubric": {
+#                     "query_validity": "Must filter by Protocol = 'TCP'",
+#                     "context_awareness": "Should reference TCP from previous results",
+#                     "visualization": "Should use table for detailed records"
+#                 }
+#             },
+#             {
+#                 "turn_id": 3,
+#                 "user_message": "What's the breakdown by attack type for these?",
+#                 "expected_query_pattern": r'SELECT.*"Attack Type".*COUNT.*"Protocol".*TCP',
+#                 "expected_visualization": "db-pie",
+#                 "rubric": {
+#                     "query_validity": "Must aggregate attack types with TCP filter",
+#                     "context_awareness": "Must maintain TCP protocol filter from previous turn",
+#                     "visualization": "Should use pie or bar chart for breakdown"
+#                 }
+#             },
+#             {
+#                 "turn_id": 4,
+#                 "user_message": "Show me the top 5 destination ports for the most common attack type",
+#                 "expected_query_pattern": r'SELECT.*"Destination Port".*COUNT.*LIMIT\s+5',
+#                 "expected_visualization": "db-chart",
+#                 "rubric": {
+#                     "query_validity": "Must aggregate by destination port with LIMIT 5",
+#                     "context_awareness": "Should filter by most common attack type from previous result",
+#                     "visualization": "Should use bar chart for ranking"
+#                 }
+#             }
+#         ]
+#     },
+
+#     # ==================== DIALOGUE 4: TEMPORAL ANALYSIS ====================
+#     {
+#         "id": "d4",
+#         "title": "Temporal Pattern Analysis",
+#         "category": "temporal",
+#         "description": "User analyzes time-based patterns with refinements",
+#         "turns": [
+#             {
+#                 "turn_id": 1, 
+#                 "user_message": "Show me the most recent 20 attacks",
+#                 "expected_query_pattern": r'SELECT.*ORDER BY.*"Timestamp".*DESC.*LIMIT\s+20',
+#                 "expected_visualization": "db-table",
+#                 "rubric": {
+#                     "query_validity": "Must ORDER BY Timestamp DESC and LIMIT 20",
+#                     "correctness": "Must return 20 most recent attacks",
+#                     "visualization": "Should use table for time-series data"
+#                 }
+#             },
+#             {
+#                 "turn_id": 2,
+#                 "user_message": "What attack types appear in these recent attacks?",
+#                 "expected_query_pattern": r'SELECT.*"Attack Type".*COUNT',
+#                 "expected_visualization": "db-chart",
+#                 "rubric": {
+#                     "query_validity": "Must aggregate attack types",
+#                     "context_awareness": "Should maintain recency filter from previous query",
+#                     "visualization": "Should use chart for distribution"
+#                 }
+#             },
+#             {
+#                 "turn_id": 3,
+#                 "user_message": "Show me the source IPs for the most frequent attack type from that list",
+#                 "expected_query_pattern": r'SELECT.*"Source IP Address"',
+#                 "expected_visualization": "db-table",
+#                 "rubric": {
+#                     "query_validity": "Must filter by specific attack type",
+#                     "context_awareness": "Should use most common attack type from previous turn",
+#                     "visualization": "Should use table for detailed IP data"
+#                 }
+#             }
+#         ]
+#     }
 ]
 
 

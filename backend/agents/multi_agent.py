@@ -1,6 +1,7 @@
 from typing import List, Dict, Any
 from crewai import Agent, Task, Crew, Process
 from langchain_openai import ChatOpenAI
+from langchain.callbacks import get_openai_callback
 
 from .base import BaseAgent, Message, AgentResponse
 from tools.database_tool import query_database
@@ -226,55 +227,96 @@ Always end with 2-3 actionable recommendations.""",
             self.llm.temperature = temperature
             self.llm.max_tokens = max_tokens
 
-            # Phase 1: Get SQL query from SQL Builder
-            sql_task = Task(
-                description=f"Determine if a SQL query is needed for: {user_message}. Output ONLY the query or 'NO_DATABASE_QUERY_NEEDED'.",
-                expected_output="SQL query or NO_DATABASE_QUERY_NEEDED",
-                agent=self.agents["sql_builder"]
-            )
+            # Track token usage across all CrewAI calls
+            with get_openai_callback() as cb:
+                # Phase 1: Get SQL query from SQL Builder
+                sql_task = Task(
+                    description=f"Determine if a SQL query is needed for: {user_message}. Output ONLY the query or 'NO_DATABASE_QUERY_NEEDED'.",
+                    expected_output="SQL query or NO_DATABASE_QUERY_NEEDED",
+                    agent=self.agents["sql_builder"]
+                )
 
-            sql_crew = Crew(
-                agents=[self.agents["sql_builder"]],
-                tasks=[sql_task],
-                process=Process.sequential,
-                verbose=False
-            )
+                sql_crew = Crew(
+                    agents=[self.agents["sql_builder"]],
+                    tasks=[sql_task],
+                    process=Process.sequential,
+                    verbose=False
+                )
 
-            sql_result = str(sql_crew.kickoff()).strip()
+                sql_result = str(sql_crew.kickoff()).strip()
 
-            # Phase 2: Execute database query if needed
-            db_results = None
-            executed_query = None
-            if "NO_DATABASE_QUERY_NEEDED" not in sql_result.upper():
-                sql_query = sql_result.replace("```sql", "").replace("```", "").strip()
-                executed_query = sql_query  # Track the executed query
-                try:
-                    db_results = query_database(sql_query)
-                except Exception as e:
-                    db_results = f'{{"error": "Query failed: {str(e)}"}}'
+                # Phase 2: Execute database query if needed
+                db_results = None
+                executed_query = None
+                if "NO_DATABASE_QUERY_NEEDED" not in sql_result.upper():
+                    sql_query = sql_result.replace("```sql", "").replace("```", "").strip()
+                    executed_query = sql_query  # Track the executed query
+                    try:
+                        db_results = query_database(sql_query)
+                    except Exception as e:
+                        db_results = f'{{"error": "Query failed: {str(e)}"}}'
 
-            # Phase 3: Run full analysis and formatting pipeline
-            tasks = self._create_tasks(user_message, db_results, enable_visualizations, executed_query)
+                # Phase 3: Run full analysis and formatting pipeline
+                tasks = self._create_tasks(user_message, db_results, enable_visualizations, executed_query)
 
-            crew = Crew(
-                agents=list(self.agents.values()),
-                tasks=tasks,
-                process=Process.sequential,
-                verbose=False
-            )
+                crew = Crew(
+                    agents=list(self.agents.values()),
+                    tasks=tasks,
+                    process=Process.sequential,
+                    verbose=False
+                )
 
-            result = crew.kickoff()
-            final_output = str(result)
+                result = crew.kickoff()
+                final_output = str(result)
+
+                # Extract token usage from CrewAI
+                # CrewAI exposes usage_metrics as an object with attributes (not a dict)
+                prompt_tokens = 0
+                completion_tokens = 0
+                total_tokens = 0
+
+                # Method 1: Try crew.usage_metrics (preferred - most reliable)
+                if hasattr(crew, 'usage_metrics') and crew.usage_metrics:
+                    try:
+                        metrics = crew.usage_metrics
+                        prompt_tokens = getattr(metrics, 'prompt_tokens', 0)
+                        completion_tokens = getattr(metrics, 'completion_tokens', 0)
+                        total_tokens = getattr(metrics, 'total_tokens', 0)
+                    except Exception:
+                        pass
+
+                # Method 2: Try result.token_usage (alternative)
+                if total_tokens == 0 and hasattr(result, 'token_usage') and result.token_usage:
+                    try:
+                        metrics = result.token_usage
+                        prompt_tokens = getattr(metrics, 'prompt_tokens', 0)
+                        completion_tokens = getattr(metrics, 'completion_tokens', 0)
+                        total_tokens = getattr(metrics, 'total_tokens', 0)
+                    except Exception:
+                        pass
+
+                # Method 3: Fallback to callback (may not work with CrewAI but worth trying)
+                if total_tokens == 0 and cb.total_tokens > 0:
+                    prompt_tokens = cb.prompt_tokens
+                    completion_tokens = cb.completion_tokens
+                    total_tokens = cb.total_tokens
+
+                usage = {
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": completion_tokens,
+                    "total_tokens": total_tokens,
+                }
 
             return AgentResponse(
                 message=Message(role="assistant", content=final_output),
-                usage={},
+                usage=usage,
                 metadata={
                     "agent_type": "multi",
                     "pipeline": "sql_builder→analyst→formatter",
                     "framework": "crewai",
                     "agents_count": 3,
-                    "database_query_executed": db_results is not None
+                    "database_query_executed": db_results is not None,
+                    "total_cost": cb.total_cost if hasattr(cb, 'total_cost') else 0
                 }
             )
 

@@ -1,64 +1,71 @@
 # Threat Explorer Agent Evaluation Report
 
-**Generated:** 2025-12-07 20:08:46
+**Generated:** 2025-12-08 11:12:34
+
+**Total Dialogues:** 1
+
+**Total Conversation Turns:** 3
 
 **Visualizations:** ENABLED
 
 ## Performance Summary
 
-| Agent | Query Validity | Pattern Match | Viz Correct | Avg Time (s) | Recommendations |
+| Agent | Query Validity | Pattern Match | Viz Correct | Context Aware | Avg Time (s) | Recommendations |
 
-|-------|----------------|---------------|-------------|--------------|------------------|
+|-------|----------------|---------------|-------------|---------------|--------------|------------------|
 
-| LLM | 33.3% | 33.3% | 33.3% | 7.28 | 0.0% |
+| Multi-Agent | 66.7% | 0.0% | 66.7% | 33.3% | 20.33 | 100.0% |
 
-| ReACT | 100.0% | 66.7% | 33.3% | 3.99 | 0.0% |
+
+## LLM-as-a-Judge Ratings (1-5 Scale)
+
+| Agent | Factuality | Helpfulness | Overall Quality | Judge Success Rate |
+
+|-------|------------|-------------|-----------------|--------------------|
+
+| Multi-Agent | 3.67/5 | 4.00/5 | 3.67/5 | 100.0% |
 
 
 ## Token Usage Summary
 
-| Agent | Total Tokens | Avg Tokens/Query | Input Tokens | Output Tokens |
+| Agent | Total Tokens | Avg Tokens/Turn | Input Tokens | Output Tokens |
 
-|-------|--------------|------------------|--------------|---------------|
+|-------|--------------|-----------------|--------------|---------------|
 
-| LLM | 6,130 | 2043 | 5,882 | 248 |
-
-| ReACT | 10,998 | 3666 | 10,621 | 377 |
+| Multi-Agent | 21,242 | 7081 | 15,206 | 6,036 |
 
 
 ## Estimated Cost Analysis (GPT-4o-mini pricing)
 
-| Agent | Total Cost | Cost/Query | Input Cost | Output Cost |
+| Agent | Total Cost | Cost/Turn | Input Cost | Output Cost |
 
-|-------|------------|------------|------------|-------------|
+|-------|------------|-----------|------------|-------------|
 
-| LLM | $0.0010 | $0.0003 | $0.0009 | $0.0001 |
-
-| ReACT | $0.0018 | $0.0006 | $0.0016 | $0.0002 |
+| Multi-Agent | $0.0059 | $0.0020 | $0.0023 | $0.0036 |
 
 
-## Results by Question Category
+## Results by Dialogue Category
 
 
-### Simple Query
+### Advanced Analysis
 
-- **LLM**: 1/3 valid queries
-
-- **ReACT**: 3/3 valid queries
+- **Multi-Agent**: 2/3 valid turns across 1 dialogue(s)
 
 
 ## Best Performer by Metric
 
-- **Query Validity:** ReACT - 100.0%
+- **Query Validity:** Multi-Agent - 66.7%
 
-- **Pattern Match:** ReACT - 66.7%
+- **Pattern Match:** Multi-Agent - 0.0%
 
-- **Visualization Correctness:** LLM - 33.3%
+- **Visualization Correctness:** Multi-Agent - 66.7%
 
-- **Recommendations Rate:** LLM - 0.0%
+- **Context Awareness:** Multi-Agent - 33.3%
 
-- **Fastest:** ReACT - 3.99s avg
+- **Recommendations Rate:** Multi-Agent - 100.0%
 
-- **Most Token-Efficient:** LLM - 2043 tokens/query avg
+- **Fastest:** Multi-Agent - 20.33s avg
 
-- **Most Cost-Effective:** LLM - $0.0003/query avg
+- **Most Token-Efficient:** Multi-Agent - 7081 tokens/turn avg
+
+- **Most Cost-Effective:** Multi-Agent - $0.0020/turn avg
