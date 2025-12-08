@@ -23,8 +23,8 @@ def query_database(query: str) -> str:
         # Limit results to prevent overwhelming the context
         sql = query.strip()
         if "LIMIT" not in sql.upper():
-            sql = f"{sql} LIMIT 50"
-            print(f"⚠️  Added LIMIT 50 to query", flush=True)
+            sql = f"{sql} LIMIT 20"
+            print(f"⚠️  Added LIMIT 20 to query", flush=True)
 
         print(f"🔍 Executing SQL: {sql}", flush=True)
         results = db.query(sql)
@@ -33,21 +33,43 @@ def query_database(query: str) -> str:
         if not results:
             print("ℹ️  No results returned", flush=True)
             print("=" * 80, flush=True)
-            return json.dumps({
+
+            # Return with prominent query header even for empty results
+            result_json = {
                 "success": True,
+                "query": sql,
                 "row_count": 0,
                 "message": "Query executed successfully but returned no results.",
                 "data": []
-            })
+            }
+
+            return f"""EXECUTED SQL QUERY:
+```sql
+{sql}
+```
+
+RESULT DATA:
+{json.dumps(result_json, indent=2)}"""
 
         print(f"📊 Sample result: {results[0] if results else 'None'}", flush=True)
         print("=" * 80, flush=True)
-        return json.dumps({
+
+        # Return with prominent query header to ensure it's always displayed
+        result_json = {
             "success": True,
             "query": sql,  # Include the executed query
             "row_count": len(results),
             "data": results
-        }, indent=2)
+        }
+
+        # Add prominent header so LLM always sees and includes the query
+        return f"""EXECUTED SQL QUERY:
+```sql
+{sql}
+```
+
+RESULT DATA:
+{json.dumps(result_json, indent=2)}"""
 
     except Exception as e:
         print(f"❌ Query failed: {str(e)}", file=sys.stderr, flush=True)

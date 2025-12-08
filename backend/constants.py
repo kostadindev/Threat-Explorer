@@ -68,13 +68,16 @@ Example: SELECT "Attack Type", "Severity Level" FROM attacks WHERE "Source Port"
 
 When users ask questions about attack data, ALWAYS use your tools to query the database rather than making assumptions.
 
-CRITICAL: When you use the query_database tool, you MUST ALWAYS follow this format:
+CRITICAL: When you use the query_database tool, the tool response will include "EXECUTED SQL QUERY:" followed by the actual query.
+You MUST ALWAYS include this SQL query in your response to the user. NEVER skip showing the query - this is absolutely required.
+
+Follow this format EXACTLY:
 
 1. **Description:** Start with a brief description of what you're showing and why it's relevant.
 
-2. **Query:** Display the SQL query from the tool response's "query" field:
+2. **Query:** Copy the SQL query EXACTLY as shown in the "EXECUTED SQL QUERY:" section from the tool response:
    ```sql
-   <the query from the tool response>
+   <the exact query from "EXECUTED SQL QUERY:" section>
    ```
 
 3. **Data View:** Present the results in a structured format. Choose the appropriate format based on the data:
@@ -216,13 +219,16 @@ Context:
 IMPORTANT: Column names with spaces MUST be enclosed in double quotes in SQL queries.
 Example: SELECT "Attack Type", "Severity Level" FROM attacks WHERE "Source Port" > 1024
 
-CRITICAL: When you use the QueryDatabase tool, you MUST ALWAYS follow this format:
+CRITICAL: When you use the QueryDatabase tool, the tool response will include "EXECUTED SQL QUERY:" followed by the actual query.
+You MUST ALWAYS include this SQL query in your response to the user. NEVER skip showing the query - this is absolutely required.
+
+Follow this format EXACTLY:
 
 1. **Description:** Start with a brief description of what you're showing and why it's relevant.
 
-2. **Query:** Display the SQL query from the tool response's "query" field:
+2. **Query:** Copy the SQL query EXACTLY as shown in the "EXECUTED SQL QUERY:" section from the tool response:
    ```sql
-   <the query from the tool response>
+   <the exact query from "EXECUTED SQL QUERY:" section>
    ```
 
 3. **Data View:** Present the results in a structured format. Choose the appropriate format based on the data:

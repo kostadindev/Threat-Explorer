@@ -65,6 +65,9 @@ You can quickly spot trends, anomalies, and critical insights that others might 
             backstory="""You are a technical writer specializing in cybersecurity reporting with expertise in data visualization.
 You know exactly how to format database results for maximum clarity and impact.
 
+CRITICAL: When database queries are executed, you MUST ALWAYS include the SQL query in your report. This is NON-NEGOTIABLE.
+The query will be provided to you in the task description. You must copy it exactly into a ```sql code block in your response.
+
 CRITICAL FORMATTING RULES YOU ALWAYS FOLLOW:
 
 For database results, you MUST use this exact format:
@@ -116,7 +119,7 @@ You always include actionable recommendations based on the findings.""",
             "formatter": formatter
         }
 
-    def _create_tasks(self, query: str, db_results: str = None, enable_visualizations: bool = True) -> List[Task]:
+    def _create_tasks(self, query: str, db_results: str = None, enable_visualizations: bool = True, executed_query: str = None) -> List[Task]:
         """Create focused, single-purpose tasks following best practices"""
 
         # Task 1: SQL Query Building
@@ -154,10 +157,14 @@ Keep your analysis concise but thorough (2-4 paragraphs).""",
         )
 
         # Task 3: Report Formatting
+        query_context = ""
+        if executed_query:
+            query_context = f"\n\nEXECUTED SQL QUERY:\n```sql\n{executed_query}\n```\n\nYou MUST include this exact query in your response in a ```sql code block. This is NON-NEGOTIABLE."
+
         if enable_visualizations:
             format_instruction = """CRITICAL: If database results are present, you MUST format them using db-table, db-chart, or db-pie:
 - Include a brief description
-- Show the SQL query in a ```sql block
+- Show the SQL query in a ```sql block (use the EXECUTED SQL QUERY provided above)
 - Format the data appropriately:
   * db-table: for detailed records
   * db-chart: for GROUP BY aggregations
@@ -166,7 +173,7 @@ Keep your analysis concise but thorough (2-4 paragraphs).""",
             format_instruction = """IMPORTANT: Visualizations are DISABLED.
 If database results are present, present them as clear, readable text:
 - Use bullet points or numbered lists
-- Show the SQL query in a ```sql block
+- Show the SQL query in a ```sql block (use the EXECUTED SQL QUERY provided above)
 - Present key findings in simple text summaries
 - Do NOT use db-table, db-chart, or db-pie formats"""
 
@@ -174,6 +181,7 @@ If database results are present, present them as clear, readable text:
             description=f"""Create a well-formatted security report that answers: {query}
 
 Use the analyst's insights to create a complete response.
+{query_context}
 
 {format_instruction}
 
@@ -236,15 +244,17 @@ Always end with 2-3 actionable recommendations.""",
 
             # Phase 2: Execute database query if needed
             db_results = None
+            executed_query = None
             if "NO_DATABASE_QUERY_NEEDED" not in sql_result.upper():
                 sql_query = sql_result.replace("```sql", "").replace("```", "").strip()
+                executed_query = sql_query  # Track the executed query
                 try:
                     db_results = query_database(sql_query)
                 except Exception as e:
                     db_results = f'{{"error": "Query failed: {str(e)}"}}'
 
             # Phase 3: Run full analysis and formatting pipeline
-            tasks = self._create_tasks(user_message, db_results, enable_visualizations)
+            tasks = self._create_tasks(user_message, db_results, enable_visualizations, executed_query)
 
             crew = Crew(
                 agents=list(self.agents.values()),

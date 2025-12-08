@@ -27,7 +27,7 @@ interface Config {
 
 export const UI_CONFIG: Config = {
   name: "Threat Explorer",
-  inputPlaceholder: "Ask about attacks, threats, or security best practices...",
+  inputPlaceholder: "Ask about attacks",
   maxInputLength: 512,
   defaultPrompts: [
     "Show me the top 10 attack types",
@@ -57,107 +57,60 @@ Try the suggested prompts below or ask anything about cybersecurity threats!
 
 // Agent-specific descriptions
 export const AGENT_DESCRIPTIONS = {
-  llm: {
-    withViz: `
+  llm: `
 ## Welcome to Threat Explorer @spin[🛡️]
 
-**LLM Agent with Function Calling** • **Visualizations: ON** 📊
+**LLM Agent with Function Calling** - Analyzes attack data using AI-powered database queries.
 
-Query our cybersecurity database using natural language. The LLM agent uses function calling to automatically retrieve data and generate interactive visualizations.
+Query our cybersecurity database using natural language. The LLM agent uses function calling to automatically retrieve and visualize data.
 
-**Capabilities:** Attack analysis • Threat patterns • Interactive tables & charts • Security insights
+**Capabilities:** Attack analysis • Threat patterns • Security insights • Interactive visualizations
 
 Try the suggested prompts below!
-    `.trim(),
-    withoutViz: `
+  `.trim(),
+
+  react: `
 ## Welcome to Threat Explorer @spin[🛡️]
 
-**LLM Agent with Function Calling** • **Visualizations: OFF** 📝
+**ReACT Agent** - Iterative reasoning with autonomous tool use for deep analysis.
 
-Query our cybersecurity database using natural language. The LLM agent uses function calling to automatically retrieve data and present it as clear, readable text.
+Ask complex questions and watch the agent reason through multiple steps, querying data and building comprehensive answers.
 
-**Capabilities:** Attack analysis • Threat patterns • Text-based reports • Security insights
+**Capabilities:** Multi-step analysis • Iterative reasoning • Autonomous data retrieval • Detailed insights
 
 Try the suggested prompts below!
-    `.trim(),
-  },
+  `.trim(),
 
-  react: {
-    withViz: `
+  multi: `
 ## Welcome to Threat Explorer @spin[🛡️]
 
-**ReACT Agent** • **Visualizations: ON** 📊
-
-Iterative reasoning with autonomous tool use for deep analysis. Watch the agent reason through multiple steps, querying data and building comprehensive visualized answers.
-
-**Capabilities:** Multi-step analysis • Iterative reasoning • Interactive charts • Detailed insights
-
-Try the suggested prompts below!
-    `.trim(),
-    withoutViz: `
-## Welcome to Threat Explorer @spin[🛡️]
-
-**ReACT Agent** • **Visualizations: OFF** 📝
-
-Iterative reasoning with autonomous tool use for deep analysis. Watch the agent reason through multiple steps, querying data and building comprehensive text-based answers.
-
-**Capabilities:** Multi-step analysis • Iterative reasoning • Text-based reports • Detailed insights
-
-Try the suggested prompts below!
-    `.trim(),
-  },
-
-  multi: {
-    withViz: `
-## Welcome to Threat Explorer @spin[🛡️]
-
-**Multi-Agent System** • **Visualizations: ON** 📊
-
-Collaborative AI powered by 3 specialized agents working together.
+**Multi-Agent System** - Collaborative AI powered by 3 specialized agents.
 
 **Agent Pipeline:**
 🔍 **SQL Builder** → Translates questions into database queries
 🎯 **Threat Analyst** → Analyzes patterns and security implications
-📊 **Report Formatter** → Creates interactive visualizations and insights
+📊 **Report Formatter** → Creates visualizations and actionable insights
 
-**Capabilities:** Comprehensive analysis • Expert insights • Interactive charts & tables • Professional reports
-
-Try the suggested prompts below!
-    `.trim(),
-    withoutViz: `
-## Welcome to Threat Explorer @spin[🛡️]
-
-**Multi-Agent System** • **Visualizations: OFF** 📝
-
-Collaborative AI powered by 3 specialized agents working together.
-
-**Agent Pipeline:**
-🔍 **SQL Builder** → Translates questions into database queries
-🎯 **Threat Analyst** → Analyzes patterns and security implications
-📝 **Report Formatter** → Creates clear text-based reports and insights
-
-**Capabilities:** Comprehensive analysis • Expert insights • Text-based reports • Professional summaries
+**Capabilities:** Comprehensive analysis • Expert insights • Professional reports • Interactive charts
 
 Try the suggested prompts below!
-    `.trim(),
-  },
+  `.trim(),
 } as const;
 
 /**
- * Get the appropriate chat description based on the selected agent type and visualization setting
+ * Get the appropriate chat description based on the selected agent type
  */
-export function getChatDescription(agentType?: string, showVisualizations: boolean = true): string {
+export function getChatDescription(agentType?: string): string {
   if (!agentType || !(agentType in AGENT_DESCRIPTIONS)) {
     return UI_CONFIG.chatDescription || '';
   }
-  const agentDesc = AGENT_DESCRIPTIONS[agentType as keyof typeof AGENT_DESCRIPTIONS];
-  return showVisualizations ? agentDesc.withViz : agentDesc.withoutViz;
+  return AGENT_DESCRIPTIONS[agentType as keyof typeof AGENT_DESCRIPTIONS];
 }
 
 // Default values for optional fields
 export const DEFAULT_MAX_INPUT_LENGTH = 512;
 export const DEFAULT_NAME = "Threat Explorer";
-export const DEFAULT_INPUT_PLACEHOLDER = "Ask about attacks, threats, or security...";
+export const DEFAULT_INPUT_PLACEHOLDER = "Ask about attacks";
 export const DEFAULT_PROMPTS = [
   "Show me the top 10 attack types",
   "What protocols are most targeted?",
