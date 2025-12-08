@@ -3,11 +3,15 @@
 Agent Evaluation Script for Threat Explorer
 
 This script evaluates all three agents (LLM, ReACT, Multi-Agent) against a curated
-set of test questions to compare their performance on key metrics including:
+set of multi-turn dialogue conversations to compare their performance on key metrics including:
 - Query validity and pattern matching
 - Visualization correctness
+- Context awareness across conversation turns
 - Response time and quality
 - Token usage and cost analysis
+
+The evaluation uses realistic dialogue scenarios where users progressively refine their
+queries, requiring agents to maintain context across multiple turns.
 
 Usage:
     python evaluate_agents.py
@@ -24,6 +28,7 @@ import argparse
 from typing import List, Dict, Any
 from datetime import datetime
 from dotenv import load_dotenv
+from openai import OpenAI
 
 # Add backend to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -36,419 +41,236 @@ load_dotenv()
 
 
 # ============================================================================
-# EVALUATION DATASET
+# EVALUATION DATASET - DIALOGUE CONVERSATIONS
 # ============================================================================
 
-EVALUATION_QUESTIONS = [
-    # ==================== SIMPLE QUERIES ====================
+EVALUATION_DIALOGUES = [
+    # ==================== DIALOGUE 1: COMPLEX THREAT CORRELATION ANALYSIS ====================
     {
-        "id": "q1",
-        "question": "Show me the top 5 attack types",
-        "category": "simple_query",
-        "expected_query_pattern": r"SELECT.*Attack Type.*COUNT.*GROUP BY.*LIMIT\s+5",
-        "expected_data_fields": ["Attack Type"],
-        "expected_visualization": "db-chart",
-        "rubric": {
-            "query_validity": "Must generate valid SQL with GROUP BY and LIMIT 5",
-            "correctness": "Must return top 5 attack types by count",
-            "visualization": "Should use bar chart (db-chart) for aggregated data"
-        }
+        "id": "d1",
+        "title": "Multi-Dimensional Threat Correlation",
+        "category": "advanced_analysis",
+        "description": "User performs complex correlation analysis across multiple attack attributes",
+        "turns": [
+            {
+                "turn_id": 1,
+                "user_message": "Identify attack types that appear more frequently during high anomaly score periods (anomaly score > 70) and show their correlation with specific protocols",
+                "expected_query_pattern": r'SELECT.*"Attack Type".*Protocol.*COUNT.*WHERE.*"Anomaly Scores".*>\s*70.*GROUP BY',
+                "expected_visualization": "db-table",
+                "rubric": {
+                    "query_validity": "Must filter by anomaly scores > 70 and group by attack type and protocol",
+                    "correctness": "Must correlate attack types with protocols under high anomaly conditions",
+                    "visualization": "Should use table or grouped chart for multi-dimensional data"
+                }
+            },
+            {
+                "turn_id": 2,
+                "user_message": "From those results, which network segments are most vulnerable and what's the average packet length for attacks in each segment?",
+                "expected_query_pattern": r'SELECT.*"Network Segment".*(AVG|avg).*"Packet Length".*GROUP BY.*"Network Segment"',
+                "expected_visualization": "db-chart",
+                "rubric": {
+                    "query_validity": "Must calculate average packet length per network segment",
+                    "context_awareness": "Should maintain high anomaly score filter and attack type context",
+                    "visualization": "Should use chart for comparative analysis"
+                }
+            },
+            {
+                "turn_id": 3,
+                "user_message": "For the most vulnerable segment, show me a breakdown of malware indicators and their corresponding IDS/IPS alert patterns",
+                "expected_query_pattern": r'SELECT.*"Malware Indicators".*"IDS/IPS Alerts".*(WHERE.*"Network Segment"|GROUP BY)',
+                "expected_visualization": "db-table",
+                "rubric": {
+                    "query_validity": "Must filter by specific network segment and correlate malware indicators with IDS/IPS alerts",
+                    "context_awareness": "Should identify and filter by the most vulnerable segment from previous query",
+                    "visualization": "Should use table for detailed correlation data"
+                }
+            }
+        ]
     },
+
+    # ==================== DIALOGUE 2: TEMPORAL PATTERN AND RISK ASSESSMENT ====================
     {
-        "id": "q2",
-        "question": "What are the severity levels in the database?",
-        "category": "simple_query",
-        "expected_query_pattern": r'SELECT.*"Severity Level".*GROUP BY',
-        "expected_data_fields": ["Severity Level"],
-        "expected_visualization": "db-pie",
-        "rubric": {
-            "query_validity": "Must quote 'Severity Level' with double quotes",
-            "correctness": "Must return all severity levels with counts",
-            "visualization": "Should use pie chart for distribution"
-        }
+        "id": "d2",
+        "title": "Temporal Attack Pattern & Risk Scoring",
+        "category": "temporal_risk_analysis",
+        "description": "User analyzes time-based attack patterns with risk assessment",
+        "turns": [
+            {
+                "turn_id": 1,
+                "user_message": "Show me the distribution of critical and high severity attacks across different traffic types, and calculate what percentage each traffic type represents",
+                "expected_query_pattern": r'SELECT.*"Traffic Type".*"Severity Level".*(Critical|High).*COUNT',
+                "expected_visualization": "db-chart",
+                "rubric": {
+                    "query_validity": "Must filter by Critical and High severity and group by traffic type",
+                    "correctness": "Must show distribution and ideally calculate percentages",
+                    "visualization": "Should use chart or pie for distribution visualization"
+                }
+            },
+            {
+                "turn_id": 2,
+                "user_message": "For the traffic type with the most critical attacks, what are the top source ports being exploited and what actions were taken in response?",
+                "expected_query_pattern": r'SELECT.*"Source Port".*"Action Taken".*COUNT',
+                "expected_visualization": "db-table",
+                "rubric": {
+                    "query_validity": "Must filter by specific traffic type and group by source port",
+                    "context_awareness": "Should identify and use the traffic type with most critical attacks from previous query",
+                    "correctness": "Must show source ports and corresponding actions taken",
+                    "visualization": "Should use table for detailed breakdown"
+                }
+            },
+            {
+                "turn_id": 3,
+                "user_message": "Based on the response actions, which ones were most effective and what's the ratio of successful vs unsuccessful mitigations for each attack signature?",
+                "expected_query_pattern": r'SELECT.*"Attack Signature".*"Action Taken"',
+                "expected_visualization": "db-chart",
+                "rubric": {
+                    "query_validity": "Must correlate attack signatures with action effectiveness",
+                    "context_awareness": "Should maintain traffic type and source port context from previous queries",
+                    "visualization": "Should use chart for effectiveness comparison"
+                }
+            }
+        ]
     },
+{
+        "id": "d3",
+        "title": "Geographic Distribution & Forensic Analysis",
+        "category": "forensic_analysis",
+        "description": "User performs geographic correlation with attack signature forensics",
+        "turns": [
+            {
+                "turn_id": 1,
+                "user_message": "Analyze attacks by geo-location data and identify which locations have the highest concentration of attacks with non-standard packet types",
+                "expected_query_pattern": r'SELECT.*"Geo-location Data".*"Packet Type".*COUNT.*GROUP BY',
+                "expected_visualization": "db-chart",
+                "rubric": {
+                    "query_validity": "Must group by geo-location and packet type",
+                    "correctness": "Must identify geographic distribution of non-standard packet attacks",
+                    "visualization": "Should use chart for geographic distribution"
+                }
+            },
+            {
+                "turn_id": 2,
+                "user_message": "For the location with the highest attack volume, correlate the attack signatures with destination ports and show which ports are most targeted",
+                "expected_query_pattern": r'SELECT.*"Destination Port".*"Attack Signature".*COUNT',
+                "expected_visualization": "db-table",
+                "rubric": {
+                    "query_validity": "Must filter by specific geo-location and analyze destination ports with signatures",
+                    "context_awareness": "Should use the location with highest attack volume from previous query",
+                    "correctness": "Must correlate attack signatures with destination ports",
+                    "visualization": "Should use table or chart for port analysis"
+                }
+            },
+            {
+                "turn_id": 3,
+                "user_message": "Compare the firewall logs and alerts/warnings for these targeted ports - are there any gaps in detection where attacks occurred but minimal alerts were generated?",
+                "expected_query_pattern": r'SELECT.*"Firewall Logs".*"Alerts/Warnings"',
+                "expected_visualization": "db-table",
+                "rubric": {
+                    "query_validity": "Must correlate firewall logs with alerts/warnings",
+                    "context_awareness": "Should maintain geo-location and destination port context",
+                    "correctness": "Must identify detection gaps by comparing logs to alerts",
+                    "visualization": "Should use table for detailed forensic comparison"
+                }
+            }
+        ]
+    },
+
+    # ==================== DIALOGUE 5: DRILL-DOWN INVESTIGATION ====================
     {
-        "id": "q3",
-        "question": "List all unique protocols in the attacks database",
-        "category": "simple_query",
-        "expected_query_pattern": r'SELECT.*DISTINCT.*"Protocol"',
-        "expected_data_fields": ["Protocol"],
-        "expected_visualization": "db-table",
-        "rubric": {
-            "query_validity": "Must use DISTINCT or GROUP BY for unique values",
-            "correctness": "Must return unique protocols",
-            "visualization": "Should use table or chart"
-        }
+        "id": "d5",
+        "title": "Drill-Down Investigation",
+        "category": "drill_down",
+        "description": "User progressively narrows focus from broad to specific",
+        "turns": [
+            {
+                "turn_id": 1,
+                "user_message": "List all unique protocols in the attacks database",
+                "expected_query_pattern": r'SELECT.*DISTINCT.*"Protocol"',
+                "expected_visualization": "db-table",
+                "rubric": {
+                    "query_validity": "Must use DISTINCT or GROUP BY for unique values",
+                    "correctness": "Must return unique protocols",
+                    "visualization": "Should use table or chart"
+                }
+            },
+            {
+                "turn_id": 2,
+                "user_message": "Show me all TCP attacks",
+                "expected_query_pattern": r'SELECT.*"Protocol".*TCP',
+                "expected_visualization": "db-table",
+                "rubric": {
+                    "query_validity": "Must filter by Protocol = 'TCP'",
+                    "context_awareness": "Should reference TCP from previous results",
+                    "visualization": "Should use table for detailed records"
+                }
+            },
+            {
+                "turn_id": 3,
+                "user_message": "What's the breakdown by attack type for these?",
+                "expected_query_pattern": r'SELECT.*"Attack Type".*COUNT.*"Protocol".*TCP',
+                "expected_visualization": "db-pie",
+                "rubric": {
+                    "query_validity": "Must aggregate attack types with TCP filter",
+                    "context_awareness": "Must maintain TCP protocol filter from previous turn",
+                    "visualization": "Should use pie or bar chart for breakdown"
+                }
+            },
+            {
+                "turn_id": 4,
+                "user_message": "Show me the top 5 destination ports for the most common attack type",
+                "expected_query_pattern": r'SELECT.*"Destination Port".*COUNT.*LIMIT\s+5',
+                "expected_visualization": "db-chart",
+                "rubric": {
+                    "query_validity": "Must aggregate by destination port with LIMIT 5",
+                    "context_awareness": "Should filter by most common attack type from previous result",
+                    "visualization": "Should use bar chart for ranking"
+                }
+            }
+        ]
     },
 
-    # # ==================== FILTERED QUERIES ====================
-    # {
-    #     "id": "q4",
-    #     "question": "Show me recent malware attacks with their source IPs",
-    #     "category": "filtered_query",
-    #     "expected_query_pattern": r'SELECT.*"Attack Type".*=.*[\'"]Malware[\'"].*LIMIT',
-    #     "expected_data_fields": ["Attack Type", "Source IP Address"],
-    #     "expected_visualization": "db-table",
-    #     "rubric": {
-    #         "query_validity": "Must filter by Attack Type = 'Malware'",
-    #         "correctness": "Must return malware attacks with source IPs",
-    #         "visualization": "Should use table for detailed records"
-    #     }
-    # },
-    # {
-    #     "id": "q5",
-    #     "question": "Find all high severity intrusion attempts",
-    #     "category": "filtered_query",
-    #     "expected_query_pattern": r'SELECT.*"Severity Level".*High.*"Attack Type".*Intrusion',
-    #     "expected_data_fields": ["Severity Level", "Attack Type"],
-    #     "expected_visualization": "db-table",
-    #     "rubric": {
-    #         "query_validity": "Must filter by both Severity Level and Attack Type",
-    #         "correctness": "Must return high severity intrusion attacks",
-    #         "visualization": "Should use table for detailed data"
-    #     }
-    # },
-    # {
-    #     "id": "q6",
-    #     "question": "Show me attacks using TCP protocol",
-    #     "category": "filtered_query",
-    #     "expected_query_pattern": r'SELECT.*"Protocol".*=.*[\'"]TCP[\'"]',
-    #     "expected_data_fields": ["Protocol"],
-    #     "expected_visualization": "db-table",
-    #     "rubric": {
-    #         "query_validity": "Must filter by Protocol = 'TCP'",
-    #         "correctness": "Must return TCP protocol attacks",
-    #         "visualization": "Should use table"
-    #     }
-    # },
-
-    # # ==================== AGGREGATION & RANKING ====================
-    # {
-    #     "id": "q7",
-    #     "question": "Which protocols are targeted most frequently?",
-    #     "category": "aggregation",
-    #     "expected_query_pattern": r'SELECT.*"Protocol".*COUNT.*GROUP BY.*ORDER BY.*DESC',
-    #     "expected_data_fields": ["Protocol"],
-    #     "expected_visualization": "db-chart",
-    #     "rubric": {
-    #         "query_validity": "Must quote Protocol, use GROUP BY and ORDER BY",
-    #         "correctness": "Must return protocols ranked by frequency",
-    #         "visualization": "Should use bar chart for ranking"
-    #     }
-    # },
-    # {
-    #     "id": "q8",
-    #     "question": "What are the top 3 source IPs with the most attacks?",
-    #     "category": "aggregation",
-    #     "expected_query_pattern": r'SELECT.*"Source IP Address".*COUNT.*GROUP BY.*LIMIT\s+3',
-    #     "expected_data_fields": ["Source IP Address"],
-    #     "expected_visualization": "db-chart",
-    #     "rubric": {
-    #         "query_validity": "Must quote Source IP Address, GROUP BY, LIMIT 3",
-    #         "correctness": "Must return top 3 IPs by attack count",
-    #         "visualization": "Should use bar chart"
-    #     }
-    # },
-    # {
-    #     "id": "q9",
-    #     "question": "Count attacks by destination port",
-    #     "category": "aggregation",
-    #     "expected_query_pattern": r'SELECT.*"Destination Port".*COUNT.*GROUP BY',
-    #     "expected_data_fields": ["Destination Port"],
-    #     "expected_visualization": "db-chart",
-    #     "rubric": {
-    #         "query_validity": "Must quote Destination Port and use GROUP BY",
-    #         "correctness": "Must return port-based attack counts",
-    #         "visualization": "Should use bar chart"
-    #     }
-    # },
-    # {
-    #     "id": "q10",
-    #     "question": "What are the top 10 most targeted destination IPs?",
-    #     "category": "aggregation",
-    #     "expected_query_pattern": r'SELECT.*"Destination IP Address".*COUNT.*GROUP BY.*LIMIT\s+10',
-    #     "expected_data_fields": ["Destination IP Address"],
-    #     "expected_visualization": "db-chart",
-    #     "rubric": {
-    #         "query_validity": "Must use GROUP BY and LIMIT 10",
-    #         "correctness": "Must return top 10 destination IPs",
-    #         "visualization": "Should use bar chart"
-    #     }
-    # },
-
-    # # ==================== COMPARISON QUERIES ====================
-    # {
-    #     "id": "q11",
-    #     "question": "Compare the frequency of DDoS attacks vs Intrusion attacks",
-    #     "category": "comparison",
-    #     "expected_query_pattern": r'SELECT.*"Attack Type".*COUNT.*WHERE.*IN.*DDoS.*Intrusion',
-    #     "expected_data_fields": ["Attack Type"],
-    #     "expected_visualization": "db-chart",
-    #     "rubric": {
-    #         "query_validity": "Must filter for both DDoS and Intrusion",
-    #         "correctness": "Must return counts for both attack types",
-    #         "visualization": "Should use bar chart for comparison"
-    #     }
-    # },
-    # {
-    #     "id": "q12",
-    #     "question": "Compare critical vs low severity attack volumes",
-    #     "category": "comparison",
-    #     "expected_query_pattern": r'SELECT.*"Severity Level".*COUNT.*WHERE.*IN.*Critical.*Low',
-    #     "expected_data_fields": ["Severity Level"],
-    #     "expected_visualization": "db-chart",
-    #     "rubric": {
-    #         "query_validity": "Must filter for Critical and Low severity",
-    #         "correctness": "Must return counts for both severity levels",
-    #         "visualization": "Should use bar chart or pie chart"
-    #     }
-    # },
-
-    # # ==================== COMPLEX FILTERS ====================
-    # {
-    #     "id": "q13",
-    #     "question": "Show me critical severity attacks from the last week",
-    #     "category": "complex_filter",
-    #     "expected_query_pattern": r'SELECT.*"Severity Level".*=.*Critical.*"Timestamp"',
-    #     "expected_data_fields": ["Severity Level", "Timestamp"],
-    #     "expected_visualization": "db-table",
-    #     "rubric": {
-    #         "query_validity": "Must filter by Severity Level and Timestamp",
-    #         "correctness": "Must return critical severity attacks with timestamps",
-    #         "visualization": "Should use table for detailed time-based data"
-    #     }
-    # },
-    # {
-    #     "id": "q14",
-    #     "question": "Find all malware attacks on port 443 with high severity",
-    #     "category": "complex_filter",
-    #     "expected_query_pattern": r'SELECT.*"Attack Type".*Malware.*"Destination Port".*443.*"Severity Level".*High',
-    #     "expected_data_fields": ["Attack Type", "Destination Port", "Severity Level"],
-    #     "expected_visualization": "db-table",
-    #     "rubric": {
-    #         "query_validity": "Must filter by attack type, port, and severity",
-    #         "correctness": "Must return matching attacks with all conditions",
-    #         "visualization": "Should use table for multi-field data"
-    #     }
-    # },
-    # {
-    #     "id": "q15",
-    #     "question": "Show reconnaissance attacks using ICMP protocol with medium or high severity",
-    #     "category": "complex_filter",
-    #     "expected_query_pattern": r'SELECT.*"Attack Type".*Reconnaissance.*"Protocol".*ICMP.*"Severity Level"',
-    #     "expected_data_fields": ["Attack Type", "Protocol", "Severity Level"],
-    #     "expected_visualization": "db-table",
-    #     "rubric": {
-    #         "query_validity": "Must filter by attack type, protocol, and severity range",
-    #         "correctness": "Must return matching attacks",
-    #         "visualization": "Should use table"
-    #     }
-    # },
-
-    # # ==================== TIME-BASED QUERIES ====================
-    # {
-    #     "id": "q16",
-    #     "question": "Show me the most recent 20 attacks",
-    #     "category": "time_based",
-    #     "expected_query_pattern": r'SELECT.*ORDER BY.*"Timestamp".*DESC.*LIMIT\s+20',
-    #     "expected_data_fields": ["Timestamp"],
-    #     "expected_visualization": "db-table",
-    #     "rubric": {
-    #         "query_validity": "Must ORDER BY Timestamp DESC and LIMIT 20",
-    #         "correctness": "Must return 20 most recent attacks",
-    #         "visualization": "Should use table for time-series data"
-    #     }
-    # },
-    # {
-    #     "id": "q17",
-    #     "question": "What attacks occurred in 2023?",
-    #     "category": "time_based",
-    #     "expected_query_pattern": r'SELECT.*"Timestamp".*2023',
-    #     "expected_data_fields": ["Timestamp"],
-    #     "expected_visualization": "db-table",
-    #     "rubric": {
-    #         "query_validity": "Must filter by year 2023",
-    #         "correctness": "Must return attacks from 2023",
-    #         "visualization": "Should use table or chart"
-    #     }
-    # },
-
-    # # ==================== STATISTICAL QUERIES ====================
-    # {
-    #     "id": "q18",
-    #     "question": "What percentage of attacks are critical severity?",
-    #     "category": "statistical",
-    #     "expected_query_pattern": r'SELECT.*"Severity Level".*COUNT',
-    #     "expected_data_fields": ["Severity Level"],
-    #     "expected_visualization": "db-pie",
-    #     "rubric": {
-    #         "query_validity": "Must aggregate by severity level",
-    #         "correctness": "Must show distribution allowing percentage calculation",
-    #         "visualization": "Should use pie chart for percentage distribution"
-    #     }
-    # },
-    # {
-    #     "id": "q19",
-    #     "question": "Show the distribution of attack types",
-    #     "category": "statistical",
-    #     "expected_query_pattern": r'SELECT.*"Attack Type".*COUNT.*GROUP BY',
-    #     "expected_data_fields": ["Attack Type"],
-    #     "expected_visualization": "db-pie",
-    #     "rubric": {
-    #         "query_validity": "Must use GROUP BY for distribution",
-    #         "correctness": "Must return all attack types with counts",
-    #         "visualization": "Should use pie chart for distribution"
-    #     }
-    # },
-
-    # # ==================== NETWORK ANALYSIS ====================
-    # {
-    #     "id": "q20",
-    #     "question": "Which source IPs have attacked multiple destination IPs?",
-    #     "category": "network_analysis",
-    #     "expected_query_pattern": r'SELECT.*"Source IP Address".*COUNT.*DISTINCT.*"Destination IP Address"',
-    #     "expected_data_fields": ["Source IP Address"],
-    #     "expected_visualization": "db-table",
-    #     "rubric": {
-    #         "query_validity": "Must count distinct destination IPs per source",
-    #         "correctness": "Must identify sources with multiple targets",
-    #         "visualization": "Should use table or chart"
-    #     }
-    # },
-    # {
-    #     "id": "q21",
-    #     "question": "Show all attacks from internal network segments",
-    #     "category": "network_analysis",
-    #     "expected_query_pattern": r'SELECT.*"Network Segment"',
-    #     "expected_data_fields": ["Network Segment"],
-    #     "expected_visualization": "db-table",
-    #     "rubric": {
-    #         "query_validity": "Must filter or group by Network Segment",
-    #         "correctness": "Must return network segment information",
-    #         "visualization": "Should use table or chart"
-    #     }
-    # },
-
-    # # ==================== GENERAL KNOWLEDGE (NO DATABASE) ====================
-    # {
-    #     "id": "q22",
-    #     "question": "What is a SQL injection attack?",
-    #     "category": "general_knowledge",
-    #     "expected_query_pattern": None,
-    #     "expected_data_fields": [],
-    #     "expected_visualization": None,
-    #     "rubric": {
-    #         "query_validity": "Should not query database",
-    #         "correctness": "Must provide accurate definition of SQL injection",
-    #         "visualization": "Should not generate visualizations"
-    #     }
-    # },
-    # {
-    #     "id": "q23",
-    #     "question": "Explain what a DDoS attack is",
-    #     "category": "general_knowledge",
-    #     "expected_query_pattern": None,
-    #     "expected_data_fields": [],
-    #     "expected_visualization": None,
-    #     "rubric": {
-    #         "query_validity": "Should not query database",
-    #         "correctness": "Must provide accurate DDoS explanation",
-    #         "visualization": "Should not generate visualizations"
-    #     }
-    # },
-    # {
-    #     "id": "q24",
-    #     "question": "What are the main differences between IDS and IPS?",
-    #     "category": "general_knowledge",
-    #     "expected_query_pattern": None,
-    #     "expected_data_fields": [],
-    #     "expected_visualization": None,
-    #     "rubric": {
-    #         "query_validity": "Should not query database",
-    #         "correctness": "Must explain IDS vs IPS correctly",
-    #         "visualization": "Should not generate visualizations"
-    #     }
-    # },
-    # {
-    #     "id": "q25",
-    #     "question": "How can I prevent cross-site scripting (XSS) attacks?",
-    #     "category": "general_knowledge",
-    #     "expected_query_pattern": None,
-    #     "expected_data_fields": [],
-    #     "expected_visualization": None,
-    #     "rubric": {
-    #         "query_validity": "Should not query database",
-    #         "correctness": "Must provide XSS prevention best practices",
-    #         "visualization": "Should not generate visualizations"
-    #     }
-    # },
-
-    # # ==================== EDGE CASES & ADVERSARIAL ====================
-    # {
-    #     "id": "q26",
-    #     "question": "Show me attacks",
-    #     "category": "ambiguous",
-    #     "expected_query_pattern": r'SELECT.*FROM.*attacks.*LIMIT',
-    #     "expected_data_fields": [],
-    #     "expected_visualization": "db-table",
-    #     "rubric": {
-    #         "query_validity": "Must generate valid query despite vague request",
-    #         "correctness": "Should return sample attacks with LIMIT clause",
-    #         "visualization": "Should use table"
-    #     }
-    # },
-    # {
-    #     "id": "q27",
-    #     "question": "What can you tell me about the data?",
-    #     "category": "ambiguous",
-    #     "expected_query_pattern": r'SELECT.*FROM.*attacks.*LIMIT',
-    #     "expected_data_fields": [],
-    #     "expected_visualization": None,
-    #     "rubric": {
-    #         "query_validity": "Should provide schema info or sample data",
-    #         "correctness": "Should give overview of available data",
-    #         "visualization": "May or may not visualize"
-    #     }
-    # },
-    # {
-    #     "id": "q28",
-    #     "question": "Find attacks with anomaly score above 0.8",
-    #     "category": "advanced_filter",
-    #     "expected_query_pattern": r'SELECT.*"Anomaly Scores".*>.*0\.8',
-    #     "expected_data_fields": ["Anomaly Scores"],
-    #     "expected_visualization": "db-table",
-    #     "rubric": {
-    #         "query_validity": "Must filter by Anomaly Scores > 0.8",
-    #         "correctness": "Must return high anomaly score attacks",
-    #         "visualization": "Should use table"
-    #     }
-    # },
-    # {
-    #     "id": "q29",
-    #     "question": "Show attacks with malware indicators present",
-    #     "category": "advanced_filter",
-    #     "expected_query_pattern": r'SELECT.*"Malware Indicators"',
-    #     "expected_data_fields": ["Malware Indicators"],
-    #     "expected_visualization": "db-table",
-    #     "rubric": {
-    #         "query_validity": "Must filter or select Malware Indicators",
-    #         "correctness": "Must return attacks with malware indicators",
-    #         "visualization": "Should use table"
-    #     }
-    # },
-    # {
-    #     "id": "q30",
-    #     "question": "List all attacks where action taken was 'Blocked'",
-    #     "category": "filtered_query",
-    #     "expected_query_pattern": r'SELECT.*"Action Taken".*=.*[\'"]Blocked[\'"]',
-    #     "expected_data_fields": ["Action Taken"],
-    #     "expected_visualization": "db-table",
-    #     "rubric": {
-    #         "query_validity": "Must filter by Action Taken = 'Blocked'",
-    #         "correctness": "Must return blocked attacks",
-    #         "visualization": "Should use table"
-    #     }
-    # }
+    # ==================== DIALOGUE 4: TEMPORAL ANALYSIS ====================
+    {
+        "id": "d4",
+        "title": "Temporal Pattern Analysis",
+        "category": "temporal",
+        "description": "User analyzes time-based patterns with refinements",
+        "turns": [
+            {
+                "turn_id": 1, 
+                "user_message": "Show me the most recent 20 attacks",
+                "expected_query_pattern": r'SELECT.*ORDER BY.*"Timestamp".*DESC.*LIMIT\s+20',
+                "expected_visualization": "db-table",
+                "rubric": {
+                    "query_validity": "Must ORDER BY Timestamp DESC and LIMIT 20",
+                    "correctness": "Must return 20 most recent attacks",
+                    "visualization": "Should use table for time-series data"
+                }
+            },
+            {
+                "turn_id": 2,
+                "user_message": "What attack types appear in these recent attacks?",
+                "expected_query_pattern": r'SELECT.*"Attack Type".*COUNT',
+                "expected_visualization": "db-chart",
+                "rubric": {
+                    "query_validity": "Must aggregate attack types",
+                    "context_awareness": "Should maintain recency filter from previous query",
+                    "visualization": "Should use chart for distribution"
+                }
+            },
+            {
+                "turn_id": 3,
+                "user_message": "Show me the source IPs for the most frequent attack type from that list",
+                "expected_query_pattern": r'SELECT.*"Source IP Address"',
+                "expected_visualization": "db-table",
+                "rubric": {
+                    "query_validity": "Must filter by specific attack type",
+                    "context_awareness": "Should use most common attack type from previous turn",
+                    "visualization": "Should use table for detailed IP data"
+                }
+            }
+        ]
+    }
 ]
 
 
@@ -510,12 +332,117 @@ def detect_visualization_type(response: str) -> str:
     return "none"
 
 
-def score_response(response: str, question: Dict[str, Any], usage: Dict[str, int] = None, metadata: Dict[str, Any] = None) -> Dict[str, Any]:
-    """Score a single agent response"""
+def llm_judge_rating(client: OpenAI, user_question: str, agent_response: str, database_schema: str) -> Dict[str, Any]:
+    """
+    Use LLM as a judge to rate agent responses on multiple dimensions.
+
+    Args:
+        client: OpenAI client instance
+        user_question: The original user question
+        agent_response: The agent's response to evaluate
+        database_schema: Schema information for context
+
+    Returns:
+        Dictionary with ratings for Factuality, Helpfulness, and Overall Quality (1-5 scale)
+    """
+
+    judge_prompt = f"""You are an expert evaluator assessing the quality of an AI agent's response to a cybersecurity database query question.
+
+Database Schema Context:
+{database_schema}
+
+User Question: {user_question}
+
+Agent Response to Evaluate:
+{agent_response}
+
+Please evaluate this response on the following criteria, providing a score from 1-5 for each (where 1 is poor and 5 is excellent):
+
+1. **Factuality (1-5)**: How factually accurate and correct is the response?
+   - 5: Completely accurate with correct SQL queries, proper database column usage, and accurate interpretations
+   - 4: Mostly accurate with minor issues
+   - 3: Some factual errors or incorrect assumptions
+   - 2: Multiple factual errors or significant inaccuracies
+   - 1: Largely inaccurate or misleading
+
+2. **Helpfulness (1-5)**: How helpful and useful is the response for the user?
+   - 5: Extremely helpful, provides actionable insights, proper visualizations, and clear explanations
+   - 4: Very helpful with good insights and clarity
+   - 3: Moderately helpful but could be more detailed or clear
+   - 2: Minimally helpful, lacks important details or context
+   - 1: Not helpful, confusing, or irrelevant
+
+3. **Overall Quality (1-5)**: Overall assessment considering all factors
+   - 5: Excellent response - accurate, helpful, well-formatted, and comprehensive
+   - 4: Good response with minor room for improvement
+   - 3: Adequate response but with notable limitations
+   - 2: Below average response with significant issues
+   - 1: Poor response that fails to address the question properly
+
+Provide your evaluation in the following JSON format:
+{{
+    "factuality": <score 1-5>,
+    "factuality_reasoning": "<brief explanation>",
+    "helpfulness": <score 1-5>,
+    "helpfulness_reasoning": "<brief explanation>",
+    "overall_quality": <score 1-5>,
+    "overall_reasoning": "<brief explanation>"
+}}
+
+Respond ONLY with the JSON object, no additional text."""
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an expert evaluator of AI system responses. Provide objective, detailed assessments."},
+                {"role": "user", "content": judge_prompt}
+            ],
+            temperature=0.3,
+            max_tokens=500
+        )
+
+        # Parse the JSON response
+        result_text = response.choices[0].message.content.strip()
+
+        # Extract JSON if wrapped in code blocks
+        if "```json" in result_text:
+            result_text = result_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in result_text:
+            result_text = result_text.split("```")[1].split("```")[0].strip()
+
+        ratings = json.loads(result_text)
+
+        return {
+            "factuality": ratings.get("factuality", 3),
+            "factuality_reasoning": ratings.get("factuality_reasoning", ""),
+            "helpfulness": ratings.get("helpfulness", 3),
+            "helpfulness_reasoning": ratings.get("helpfulness_reasoning", ""),
+            "overall_quality": ratings.get("overall_quality", 3),
+            "overall_reasoning": ratings.get("overall_reasoning", ""),
+            "judge_success": True
+        }
+
+    except Exception as e:
+        print(f"     ⚠ LLM Judge error: {str(e)}")
+        return {
+            "factuality": 0,
+            "factuality_reasoning": f"Judge failed: {str(e)}",
+            "helpfulness": 0,
+            "helpfulness_reasoning": f"Judge failed: {str(e)}",
+            "overall_quality": 0,
+            "overall_reasoning": f"Judge failed: {str(e)}",
+            "judge_success": False
+        }
+
+
+def score_response(response: str, turn_data: Dict[str, Any], usage: Dict[str, int] = None, metadata: Dict[str, Any] = None, is_followup: bool = False) -> Dict[str, Any]:
+    """Score a single agent response for a conversation turn"""
     scores = {
         "query_validity": 0,
         "query_pattern_match": 0,
         "visualization_correctness": 0,
+        "context_awareness": 0,  # New metric for dialogue evaluation
         "response_length": len(response),
         "has_recommendations": 0,
         "input_tokens": usage.get("prompt_tokens", 0) if usage else 0,
@@ -531,21 +458,21 @@ def score_response(response: str, question: Dict[str, Any], usage: Dict[str, int
         # Use the first SQL query from the metadata
         sql_query = metadata["sql_queries"][0]
 
-    if question["expected_query_pattern"]:
-        # This question expects a database query
+    if turn_data.get("expected_query_pattern"):
+        # This turn expects a database query
         if sql_query:
             validation = validate_sql_query(sql_query)
             scores["query_validity"] = 1 if validation["valid"] else 0
             scores["query_error"] = validation.get("error")
 
             # Check if query matches expected pattern
-            if check_query_pattern(sql_query, question["expected_query_pattern"]):
+            if check_query_pattern(sql_query, turn_data["expected_query_pattern"]):
                 scores["query_pattern_match"] = 1
         else:
             scores["query_validity"] = 0
             scores["query_error"] = "No SQL query found in response"
     else:
-        # This question should NOT query database
+        # This turn should NOT query database
         if not sql_query:
             scores["query_validity"] = 1  # Correctly didn't query
         else:
@@ -553,7 +480,7 @@ def score_response(response: str, question: Dict[str, Any], usage: Dict[str, int
 
     # Check visualization format
     viz_type = detect_visualization_type(response)
-    expected_viz = question.get("expected_visualization")
+    expected_viz = turn_data.get("expected_visualization")
 
     if expected_viz:
         scores["visualization_correctness"] = 1 if viz_type == expected_viz else 0
@@ -567,100 +494,225 @@ def score_response(response: str, question: Dict[str, Any], usage: Dict[str, int
     if any(keyword in response.lower() for keyword in ["recommend", "should", "consider", "best practice"]):
         scores["has_recommendations"] = 1
 
+    # For follow-up turns, check if context awareness rubric exists
+    if is_followup and "context_awareness" in turn_data.get("rubric", {}):
+        # Simple heuristic: if the query/response is valid and follows pattern, assume context was maintained
+        # In a more sophisticated evaluation, you might check for specific context references
+        if scores["query_validity"] == 1 and scores["query_pattern_match"] == 1:
+            scores["context_awareness"] = 1
+        else:
+            scores["context_awareness"] = 0
+    elif not is_followup:
+        # First turn always gets full context awareness score (no prior context to maintain)
+        scores["context_awareness"] = 1
+
     return scores
 
 
-def evaluate_agent(agent_name: str, agent, questions: List[Dict], enable_viz: bool = True) -> Dict[str, Any]:
-    """Evaluate a single agent on all questions"""
+def evaluate_agent(agent_name: str, agent, dialogues: List[Dict], enable_viz: bool = True, use_judge: bool = True, judge_client: OpenAI = None) -> Dict[str, Any]:
+    """Evaluate a single agent on all dialogue conversations"""
     print(f"\n{'='*80}")
-    print(f"Evaluating {agent_name} (Visualizations: {'ON' if enable_viz else 'OFF'})")
+    print(f"Evaluating {agent_name} (Visualizations: {'ON' if enable_viz else 'OFF'}, Judge: {'ON' if use_judge else 'OFF'})")
     print(f"{'='*80}")
+
+    # Get database schema for judge context
+    database_schema = """
+The database contains a table called 'attacks' with the following exact columns (case-sensitive):
+
+Columns requiring double quotes (have spaces):
+- "Source IP Address", "Destination IP Address"
+- "Source Port", "Destination Port"
+- "Packet Length", "Packet Type", "Traffic Type"
+- "Payload Data", "Malware Indicators", "Anomaly Scores"
+- "Alerts/Warnings", "Attack Type", "Attack Signature"
+- "Action Taken", "Severity Level"
+- "User Information", "Device Information", "Network Segment"
+- "Geo-location Data", "Proxy Information"
+- "Firewall Logs", "IDS/IPS Alerts", "Log Source"
+
+Columns NOT requiring quotes (no spaces):
+- Timestamp, Protocol
+
+IMPORTANT:
+- The column is "Anomaly Scores" (PLURAL), not "Anomaly Score"
+- ALL column names with spaces MUST be enclosed in double quotes in SQL queries
+- Column names are case-sensitive
+"""
 
     results = {
         "agent_name": agent_name,
         "visualizations_enabled": enable_viz,
-        "total_questions": len(questions),
-        "responses": [],
+        "total_dialogues": len(dialogues),
+        "total_turns": sum(len(d["turns"]) for d in dialogues),
+        "dialogues": [],
         "aggregate_scores": {},
-        "total_time": 0
+        "total_time": 0,
+        "use_judge": use_judge
     }
 
-    for i, question_data in enumerate(questions, 1):
-        question = question_data["question"]
-        print(f"\n[{i}/{len(questions)}] {question}")
+    for dialogue_idx, dialogue_data in enumerate(dialogues, 1):
+        print(f"\n{'─'*80}")
+        print(f"Dialogue {dialogue_idx}/{len(dialogues)}: {dialogue_data['title']}")
+        print(f"Category: {dialogue_data['category']}")
+        print(f"Description: {dialogue_data['description']}")
+        print(f"{'─'*80}")
 
-        # Prepare messages
-        messages = [Message(role="user", content=question)]
-
-        # Time the response
-        start_time = time.time()
-
-        try:
-            response = agent.chat(
-                messages=messages,
-                temperature=0.7,
-                max_tokens=2000,
-                enable_visualizations=enable_viz
-            )
-
-            elapsed_time = time.time() - start_time
-            response_text = response.message.content
-
-            # Extract token usage for display
-            tokens_used = response.usage.get("total_tokens", 0) if response.usage else 0
-            print(f"   ✓ Response received ({elapsed_time:.2f}s, {tokens_used} tokens)")
-
-            # Score the response
-            scores = score_response(response_text, question_data, response.usage, response.metadata)
-
-            result = {
-                "question_id": question_data["id"],
-                "question": question,
-                "category": question_data["category"],
-                "response": response_text,
-                "response_time": elapsed_time,
-                "scores": scores,
-                "metadata": response.metadata
-            }
-
-            results["responses"].append(result)
-            results["total_time"] += elapsed_time
-
-        except Exception as e:
-            print(f"   ✗ Error: {str(e)}")
-            results["responses"].append({
-                "question_id": question_data["id"],
-                "question": question,
-                "category": question_data["category"],
-                "error": str(e),
-                "response_time": time.time() - start_time
-            })
-
-    # Calculate aggregate scores
-    valid_responses = [r for r in results["responses"] if "error" not in r]
-
-    if valid_responses:
-        results["aggregate_scores"] = {
-            "query_validity_rate": sum(r["scores"]["query_validity"] for r in valid_responses) / len(valid_responses),
-            "query_pattern_match_rate": sum(r["scores"]["query_pattern_match"] for r in valid_responses) / len(valid_responses),
-            "visualization_correctness_rate": sum(r["scores"]["visualization_correctness"] for r in valid_responses) / len(valid_responses),
-            "avg_response_time": results["total_time"] / len(valid_responses),
-            "avg_response_length": sum(r["scores"]["response_length"] for r in valid_responses) / len(valid_responses),
-            "recommendations_rate": sum(r["scores"]["has_recommendations"] for r in valid_responses) / len(valid_responses),
-            "error_rate": (len(results["responses"]) - len(valid_responses)) / len(results["responses"]),
-            "total_input_tokens": sum(r["scores"]["input_tokens"] for r in valid_responses),
-            "total_output_tokens": sum(r["scores"]["output_tokens"] for r in valid_responses),
-            "total_tokens": sum(r["scores"]["total_tokens"] for r in valid_responses),
-            "avg_input_tokens": sum(r["scores"]["input_tokens"] for r in valid_responses) / len(valid_responses),
-            "avg_output_tokens": sum(r["scores"]["output_tokens"] for r in valid_responses) / len(valid_responses),
-            "avg_total_tokens": sum(r["scores"]["total_tokens"] for r in valid_responses) / len(valid_responses)
+        dialogue_result = {
+            "dialogue_id": dialogue_data["id"],
+            "title": dialogue_data["title"],
+            "category": dialogue_data["category"],
+            "description": dialogue_data["description"],
+            "turns": [],
+            "dialogue_time": 0
         }
+
+        # Maintain conversation history across turns
+        conversation_history = []
+
+        for turn_idx, turn_data in enumerate(dialogue_data["turns"], 1):
+            user_message = turn_data["user_message"]
+            print(f"\n  Turn {turn_idx}/{len(dialogue_data['turns'])}: {user_message}")
+
+            # Add user message to conversation history
+            conversation_history.append(Message(role="user", content=user_message))
+
+            # Time the response
+            start_time = time.time()
+
+            try:
+                # Pass the full conversation history to the agent
+                response = agent.chat(
+                    messages=conversation_history,
+                    temperature=0.7,
+                    max_tokens=2000,
+                    enable_visualizations=enable_viz
+                )
+
+                elapsed_time = time.time() - start_time
+                response_text = response.message.content
+
+                # Add assistant response to conversation history
+                conversation_history.append(Message(role="assistant", content=response_text))
+
+                # Extract token usage for display
+                tokens_used = response.usage.get("total_tokens", 0) if response.usage else 0
+                print(f"     ✓ Response received ({elapsed_time:.2f}s, {tokens_used} tokens)")
+
+                # Score the response (mark as follow-up if not first turn)
+                is_followup = turn_idx > 1
+                scores = score_response(
+                    response_text,
+                    turn_data,
+                    response.usage,
+                    response.metadata,
+                    is_followup=is_followup
+                )
+
+                # Get LLM Judge ratings if enabled
+                judge_ratings = None
+                if use_judge and judge_client:
+                    print(f"     🔍 Getting LLM judge ratings...")
+                    judge_ratings = llm_judge_rating(
+                        judge_client,
+                        user_message,
+                        response_text,
+                        database_schema
+                    )
+                    if judge_ratings.get("judge_success"):
+                        print(f"     📊 Judge Scores - Factuality: {judge_ratings['factuality']}/5, "
+                              f"Helpfulness: {judge_ratings['helpfulness']}/5, "
+                              f"Quality: {judge_ratings['overall_quality']}/5")
+
+                # Extract the SQL query from response for display
+                sql_query = extract_sql_query(response_text)
+                if not sql_query and response.metadata and "sql_queries" in response.metadata and response.metadata["sql_queries"]:
+                    sql_query = response.metadata["sql_queries"][0]
+
+                turn_result = {
+                    "turn_id": turn_data["turn_id"],
+                    "user_message": user_message,
+                    "response": response_text,
+                    "response_time": elapsed_time,
+                    "scores": scores,
+                    "judge_ratings": judge_ratings,
+                    "metadata": response.metadata,
+                    "is_followup": is_followup,
+                    "generated_sql": sql_query,
+                    "expected_query_pattern": turn_data.get("expected_query_pattern", "")
+                }
+
+                dialogue_result["turns"].append(turn_result)
+                dialogue_result["dialogue_time"] += elapsed_time
+                results["total_time"] += elapsed_time
+
+            except Exception as e:
+                print(f"     ✗ Error: {str(e)}")
+                turn_result = {
+                    "turn_id": turn_data["turn_id"],
+                    "user_message": user_message,
+                    "error": str(e),
+                    "response_time": time.time() - start_time,
+                    "is_followup": turn_idx > 1
+                }
+                dialogue_result["turns"].append(turn_result)
+                dialogue_result["dialogue_time"] += turn_result["response_time"]
+                results["total_time"] += turn_result["response_time"]
+
+        results["dialogues"].append(dialogue_result)
+        print(f"\n  Dialogue completed in {dialogue_result['dialogue_time']:.2f}s")
+
+    # Calculate aggregate scores across all turns
+    all_turns = []
+    for dialogue in results["dialogues"]:
+        all_turns.extend(dialogue["turns"])
+
+    valid_turns = [t for t in all_turns if "error" not in t]
+
+    if valid_turns:
+        results["aggregate_scores"] = {
+            "query_validity_rate": sum(t["scores"]["query_validity"] for t in valid_turns) / len(valid_turns),
+            "query_pattern_match_rate": sum(t["scores"]["query_pattern_match"] for t in valid_turns) / len(valid_turns),
+            "visualization_correctness_rate": sum(t["scores"]["visualization_correctness"] for t in valid_turns) / len(valid_turns),
+            "context_awareness_rate": sum(t["scores"]["context_awareness"] for t in valid_turns) / len(valid_turns),
+            "avg_response_time": results["total_time"] / len(valid_turns),
+            "avg_response_length": sum(t["scores"]["response_length"] for t in valid_turns) / len(valid_turns),
+            "recommendations_rate": sum(t["scores"]["has_recommendations"] for t in valid_turns) / len(valid_turns),
+            "error_rate": (len(all_turns) - len(valid_turns)) / len(all_turns) if all_turns else 0,
+            "total_input_tokens": sum(t["scores"]["input_tokens"] for t in valid_turns),
+            "total_output_tokens": sum(t["scores"]["output_tokens"] for t in valid_turns),
+            "total_tokens": sum(t["scores"]["total_tokens"] for t in valid_turns),
+            "avg_input_tokens": sum(t["scores"]["input_tokens"] for t in valid_turns) / len(valid_turns),
+            "avg_output_tokens": sum(t["scores"]["output_tokens"] for t in valid_turns) / len(valid_turns),
+            "avg_total_tokens": sum(t["scores"]["total_tokens"] for t in valid_turns) / len(valid_turns)
+        }
+
+        # Add judge ratings if available
+        if use_judge:
+            turns_with_judge = [t for t in valid_turns if t.get("judge_ratings") and t["judge_ratings"].get("judge_success")]
+            if turns_with_judge:
+                results["aggregate_scores"]["avg_factuality"] = sum(t["judge_ratings"]["factuality"] for t in turns_with_judge) / len(turns_with_judge)
+                results["aggregate_scores"]["avg_helpfulness"] = sum(t["judge_ratings"]["helpfulness"] for t in turns_with_judge) / len(turns_with_judge)
+                results["aggregate_scores"]["avg_overall_quality"] = sum(t["judge_ratings"]["overall_quality"] for t in turns_with_judge) / len(turns_with_judge)
+                results["aggregate_scores"]["judge_success_rate"] = len(turns_with_judge) / len(valid_turns)
+            else:
+                results["aggregate_scores"]["avg_factuality"] = 0
+                results["aggregate_scores"]["avg_helpfulness"] = 0
+                results["aggregate_scores"]["avg_overall_quality"] = 0
+                results["aggregate_scores"]["judge_success_rate"] = 0
 
         # Print summary for this agent
         print(f"\n{'-'*80}")
         print(f"Agent Summary:")
+        print(f"  Total Dialogues: {results['total_dialogues']}")
+        print(f"  Total Turns: {results['total_turns']}")
+        print(f"  Context Awareness: {results['aggregate_scores']['context_awareness_rate']:.1%}")
+        if use_judge and results['aggregate_scores'].get('avg_factuality', 0) > 0:
+            print(f"  LLM Judge Ratings:")
+            print(f"    Factuality: {results['aggregate_scores']['avg_factuality']:.2f}/5")
+            print(f"    Helpfulness: {results['aggregate_scores']['avg_helpfulness']:.2f}/5")
+            print(f"    Overall Quality: {results['aggregate_scores']['avg_overall_quality']:.2f}/5")
         print(f"  Total Tokens: {results['aggregate_scores']['total_tokens']:,}")
-        print(f"  Avg Tokens/Query: {results['aggregate_scores']['avg_total_tokens']:.0f}")
+        print(f"  Avg Tokens/Turn: {results['aggregate_scores']['avg_total_tokens']:.0f}")
         print(f"  Total Time: {results['total_time']:.2f}s")
         print(f"{'-'*80}")
 
@@ -682,33 +734,13 @@ def calculate_cost(input_tokens: int, output_tokens: int, model: str = "gpt-4o-m
     return input_cost + output_cost
 
 
-def generate_html_report(all_results: List[Dict], output_file: str):
-    """Generate an interactive HTML report with charts"""
+def generate_html_report(output_file: str, json_file: str = "evaluation_results.json"):
+    """Generate an interactive HTML report that reads from a JSON results file
 
-    # Prepare summary data
-    total_questions = all_results[0]['total_questions'] if all_results else 0
-    summary = {
-        "total_questions": total_questions,
-        "total_configurations": len(all_results),
-        "evaluation_date": datetime.now().isoformat()
-    }
-
-    # Transform results to match expected format
-    formatted_results = []
-    for result in all_results:
-        formatted_results.append({
-            "agent_name": result["agent_name"],
-            "agent_type": result["agent_name"].lower().replace("-", "_"),
-            "visualizations_enabled": result["visualizations_enabled"],
-            "avg_response_time": result["aggregate_scores"]["avg_response_time"],
-            "aggregate_scores": result["aggregate_scores"],
-            "responses": result["responses"]
-        })
-
-    evaluation_data = {
-        "summary": summary,
-        "results": formatted_results
-    }
+    Args:
+        output_file: Path to output HTML file
+        json_file: Path to JSON results file (relative to HTML file location)
+    """
 
     # HTML template
     html_content = f"""<!DOCTYPE html>
@@ -1085,6 +1117,34 @@ def generate_html_report(all_results: List[Dict], output_file: str):
             text-transform: uppercase;
             display: inline-block;
         }}
+
+        .loading-container {{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            padding: 40px;
+        }}
+
+        .loading-spinner {{
+            width: 50px;
+            height: 50px;
+            border: 5px solid #e2e8f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }}
+
+        @keyframes spin {{
+            to {{ transform: rotate(360deg); }}
+        }}
+
+        .loading-text {{
+            margin-top: 20px;
+            color: #718096;
+            font-size: 1.1rem;
+        }}
     </style>
 </head>
 <body>
@@ -1095,6 +1155,14 @@ def generate_html_report(all_results: List[Dict], output_file: str):
         </div>
 
         <div class="content">
+            <!-- Loading indicator -->
+            <div id="loading" class="loading-container">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading evaluation results...</div>
+            </div>
+
+            <!-- Content sections (hidden until loaded) -->
+            <div id="report-content" style="display: none;">
             <!-- Overview Metrics -->
             <div class="section">
                 <h2 class="section-title">📊 Overview</h2>
@@ -1137,6 +1205,13 @@ def generate_html_report(all_results: List[Dict], output_file: str):
                         <canvas id="costChart"></canvas>
                     </div>
                 </div>
+
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 20px; color: #2d3748;">LLM Judge Ratings (1-5 Scale)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="judgeChart"></canvas>
+                    </div>
+                </div>
             </div>
 
             <!-- Cost Analysis Table -->
@@ -1156,11 +1231,129 @@ def generate_html_report(all_results: List[Dict], output_file: str):
                 <h2 class="section-title">📂 Performance by Category</h2>
                 <div id="category-results"></div>
             </div>
+
+            <!-- Individual Evaluation Results Table -->
+            <div class="section">
+                <h2 class="section-title">📋 Complete Evaluation Results (All Turns)</h2>
+                <div id="individual-results-table"></div>
+            </div>
+
+            <!-- Per-Agent Detailed Tables -->
+            <div class="section">
+                <h2 class="section-title">🔍 Per-Agent Detailed Results</h2>
+                <div id="per-agent-tables"></div>
+            </div>
+            </div><!-- End report-content -->
         </div>
     </div>
 
     <script>
-        const evaluationData = {json.dumps(evaluation_data, indent=2)};
+        let evaluationData = null;
+
+        // Load evaluation data from JSON file
+        async function loadEvaluationData() {{
+            try {{
+                const response = await fetch('{json_file}');
+                if (!response.ok) {{
+                    throw new Error(`Failed to load results: ${{response.statusText}}`);
+                }}
+                evaluationData = await response.json();
+
+                // Transform raw results to expected format
+                transformData();
+
+                // Hide loading indicator and show content
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('report-content').style.display = 'block';
+
+                // Initialize all visualizations
+                initializeVisualizations();
+            }} catch (error) {{
+                console.error('Error loading evaluation data:', error);
+                document.getElementById('loading').innerHTML = `
+                    <div style="text-align: center; max-width: 800px; margin: 0 auto;">
+                        <h1 style="color: #f56565; margin-bottom: 20px;">❌ CORS Error: Cannot Load Results</h1>
+                        <p style="color: #718096; font-size: 1.1rem; margin-bottom: 20px;">
+                            The browser blocked loading <strong>{json_file}</strong> due to CORS restrictions when opening HTML files directly.
+                        </p>
+
+                        <div style="background: #fff5f5; border: 2px solid #f56565; border-radius: 8px; padding: 20px; margin-bottom: 20px; text-align: left;">
+                            <h3 style="color: #c53030; margin-bottom: 10px;">🔧 How to Fix This:</h3>
+                            <p style="color: #4a5568; margin-bottom: 15px;">You need to serve the HTML file using a local web server. Choose one of these options:</p>
+
+                            <div style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                                <p style="margin-bottom: 10px; font-weight: bold;">Option 1: Python HTTP Server (Recommended)</p>
+                                <code style="display: block; background: #1a202c; padding: 10px; border-radius: 4px; font-family: monospace;">
+                                    cd {os.path.dirname(os.path.abspath('{json_file}')) or '.'}
+                                    <br>python -m http.server 8000
+                                </code>
+                                <p style="margin-top: 10px; font-size: 0.9rem;">Then open: <a href="http://localhost:8000/evaluation_results.html" style="color: #90cdf4;">http://localhost:8000/evaluation_results.html</a></p>
+                            </div>
+
+                            <div style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                                <p style="margin-bottom: 10px; font-weight: bold;">Option 2: Node.js HTTP Server</p>
+                                <code style="display: block; background: #1a202c; padding: 10px; border-radius: 4px; font-family: monospace;">
+                                    npx http-server -p 8000
+                                </code>
+                            </div>
+
+                            <div style="background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 6px;">
+                                <p style="margin-bottom: 10px; font-weight: bold;">Option 3: VS Code Live Server</p>
+                                <p style="font-size: 0.9rem;">Right-click the HTML file in VS Code and select "Open with Live Server"</p>
+                            </div>
+                        </div>
+
+                        <details style="text-align: left; background: #f7fafc; padding: 15px; border-radius: 8px;">
+                            <summary style="cursor: pointer; font-weight: bold; color: #2d3748; margin-bottom: 10px;">Show Technical Error Details</summary>
+                            <pre style="background: #1a202c; color: #e2e8f0; padding: 15px; border-radius: 4px; overflow-x: auto; margin-top: 10px;">Error: ${{error.message}}</pre>
+                        </details>
+                    </div>
+                `;
+            }}
+        }}
+
+        // Transform raw evaluation results to expected format
+        function transformData() {{
+            const total_dialogues = evaluationData[0]?.total_dialogues || 0;
+            const total_turns = evaluationData[0]?.total_turns || 0;
+
+            const summary = {{
+                total_dialogues: total_dialogues,
+                total_turns: total_turns,
+                total_configurations: evaluationData.length,
+                evaluation_date: evaluationData[0]?.evaluation_date || new Date().toISOString()
+            }};
+
+            const formatted_results = [];
+            for (const result of evaluationData) {{
+                // Flatten all turns from all dialogues
+                const all_turns = [];
+                for (const dialogue of result.dialogues) {{
+                    for (const turn of dialogue.turns) {{
+                        const turn_copy = {{ ...turn }};
+                        turn_copy.dialogue_id = dialogue.dialogue_id;
+                        turn_copy.dialogue_title = dialogue.title;
+                        turn_copy.category = dialogue.category;
+                        all_turns.push(turn_copy);
+                    }}
+                }}
+
+                formatted_results.push({{
+                    agent_name: result.agent_name,
+                    agent_type: result.agent_name.toLowerCase().replace('-', '_'),
+                    visualizations_enabled: result.visualizations_enabled,
+                    avg_response_time: result.aggregate_scores.avg_response_time,
+                    aggregate_scores: result.aggregate_scores,
+                    responses: all_turns,
+                    dialogues: result.dialogues
+                }});
+            }}
+
+            evaluationData = {{
+                summary: summary,
+                results: formatted_results
+            }};
+        }}
 
         // Helper function to get score class
         function getScoreClass(value) {{
@@ -1186,12 +1379,16 @@ def generate_html_report(all_results: List[Dict], output_file: str):
                 current.aggregate_scores.avg_total_tokens < best.aggregate_scores.avg_total_tokens ? current : best
             );
 
+            const bestQuality = evaluationData.results.reduce((best, current) =>
+                (current.aggregate_scores.avg_overall_quality || 0) > (best.aggregate_scores.avg_overall_quality || 0) ? current : best
+            );
+
             container.innerHTML = `
                 <div class="metrics-grid">
                     <div class="metric-card">
-                        <h3>Total Questions</h3>
-                        <div class="value">${{evaluationData.summary.total_questions}}</div>
-                        <div class="label">Test Questions</div>
+                        <h3>Total Dialogues</h3>
+                        <div class="value">${{evaluationData.summary.total_dialogues}}</div>
+                        <div class="label">${{evaluationData.summary.total_turns}} Total Turns</div>
                     </div>
                     <div class="metric-card">
                         <h3>Agents Tested</h3>
@@ -1204,6 +1401,20 @@ def generate_html_report(all_results: List[Dict], output_file: str):
                         <div class="label">${{(bestOverall.aggregate_scores.query_validity_rate * 100).toFixed(0)}}% Valid</div>
                     </div>
                     <div class="metric-card">
+                        <h3>Highest Quality (Judge)</h3>
+                        <div class="value">${{bestQuality.agent_name}}</div>
+                        <div class="label">${{(bestQuality.aggregate_scores.avg_overall_quality || 0).toFixed(2)}}/5 Rating</div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Best Context Awareness</h3>
+                        <div class="value">${{evaluationData.results.reduce((best, current) =>
+                            current.aggregate_scores.context_awareness_rate > best.aggregate_scores.context_awareness_rate ? current : best
+                        ).agent_name}}</div>
+                        <div class="label">${{(evaluationData.results.reduce((best, current) =>
+                            current.aggregate_scores.context_awareness_rate > best.aggregate_scores.context_awareness_rate ? current : best
+                        ).aggregate_scores.context_awareness_rate * 100).toFixed(0)}}% Context Aware</div>
+                    </div>
+                    <div class="metric-card">
                         <h3>Fastest Agent</h3>
                         <div class="value">${{fastestAgent.agent_name}}</div>
                         <div class="label">${{fastestAgent.avg_response_time.toFixed(2)}}s avg</div>
@@ -1211,7 +1422,7 @@ def generate_html_report(all_results: List[Dict], output_file: str):
                     <div class="metric-card">
                         <h3>Most Efficient</h3>
                         <div class="value">${{mostEfficient.agent_name}}</div>
-                        <div class="label">${{Math.round(mostEfficient.aggregate_scores.avg_total_tokens)}} tokens/query</div>
+                        <div class="label">${{Math.round(mostEfficient.aggregate_scores.avg_total_tokens)}} tokens/turn</div>
                     </div>
                 </div>
             `;
@@ -1222,15 +1433,29 @@ def generate_html_report(all_results: List[Dict], output_file: str):
             const container = document.getElementById('comparison-table');
             const rows = evaluationData.results.map(result => {{
                 const scores = result.aggregate_scores;
+                const factuality = scores.avg_factuality || 0;
+                const helpfulness = scores.avg_helpfulness || 0;
+                const quality = scores.avg_overall_quality || 0;
+
+                // Helper to get score class for judge ratings (out of 5)
+                const getJudgeClass = (val) => {{
+                    if (val >= 4) return 'high';
+                    if (val >= 3) return 'medium';
+                    return 'low';
+                }};
+
                 return `
                     <tr>
                         <td><div class="agent-label">${{result.agent_name}}</div></td>
                         <td><span class="score ${{getScoreClass(scores.query_validity_rate)}}">${{(scores.query_validity_rate * 100).toFixed(1)}}%</span></td>
                         <td><span class="score ${{getScoreClass(scores.query_pattern_match_rate)}}">${{(scores.query_pattern_match_rate * 100).toFixed(1)}}%</span></td>
                         <td><span class="score ${{getScoreClass(scores.visualization_correctness_rate)}}">${{(scores.visualization_correctness_rate * 100).toFixed(1)}}%</span></td>
+                        <td><span class="score ${{getScoreClass(scores.context_awareness_rate)}}">${{(scores.context_awareness_rate * 100).toFixed(1)}}%</span></td>
+                        <td><span class="score ${{getJudgeClass(factuality)}}">${{factuality > 0 ? factuality.toFixed(2) : 'N/A'}}</span></td>
+                        <td><span class="score ${{getJudgeClass(helpfulness)}}">${{helpfulness > 0 ? helpfulness.toFixed(2) : 'N/A'}}</span></td>
+                        <td><span class="score ${{getJudgeClass(quality)}}">${{quality > 0 ? quality.toFixed(2) : 'N/A'}}</span></td>
                         <td>${{result.avg_response_time.toFixed(2)}}s</td>
                         <td>${{Math.round(scores.avg_total_tokens).toLocaleString()}}</td>
-                        <td><span class="score ${{getScoreClass(scores.recommendations_rate)}}">${{(scores.recommendations_rate * 100).toFixed(1)}}%</span></td>
                     </tr>
                 `;
             }}).join('');
@@ -1243,15 +1468,21 @@ def generate_html_report(all_results: List[Dict], output_file: str):
                             <th>Query Validity</th>
                             <th>Pattern Match</th>
                             <th>Viz Correct</th>
+                            <th>Context Aware</th>
+                            <th>Factuality</th>
+                            <th>Helpfulness</th>
+                            <th>Quality</th>
                             <th>Avg Time</th>
                             <th>Avg Tokens</th>
-                            <th>Recommendations</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${{rows}}
                     </tbody>
                 </table>
+                <p style="margin-top: 15px; color: #718096; font-size: 0.9rem;">
+                    * Factuality, Helpfulness, and Quality rated by LLM Judge on 1-5 scale
+                </p>
             `;
         }}
 
@@ -1279,6 +1510,11 @@ def generate_html_report(all_results: List[Dict], output_file: str):
                             label: 'Visualization Correct',
                             data: evaluationData.results.map(r => r.aggregate_scores.visualization_correctness_rate * 100),
                             backgroundColor: 'rgba(72, 187, 120, 0.8)'
+                        }},
+                        {{
+                            label: 'Context Awareness',
+                            data: evaluationData.results.map(r => r.aggregate_scores.context_awareness_rate * 100),
+                            backgroundColor: 'rgba(246, 211, 101, 0.8)'
                         }}
                     ]
                 }},
@@ -1446,6 +1682,63 @@ def generate_html_report(all_results: List[Dict], output_file: str):
             }});
         }}
 
+        // Create LLM judge ratings chart
+        function createJudgeChart() {{
+            const ctx = document.getElementById('judgeChart').getContext('2d');
+            const labels = evaluationData.results.map(r => r.agent_name);
+
+            new Chart(ctx, {{
+                type: 'bar',
+                data: {{
+                    labels: labels,
+                    datasets: [
+                        {{
+                            label: 'Factuality',
+                            data: evaluationData.results.map(r => r.aggregate_scores.avg_factuality || 0),
+                            backgroundColor: 'rgba(102, 126, 234, 0.8)'
+                        }},
+                        {{
+                            label: 'Helpfulness',
+                            data: evaluationData.results.map(r => r.aggregate_scores.avg_helpfulness || 0),
+                            backgroundColor: 'rgba(72, 187, 120, 0.8)'
+                        }},
+                        {{
+                            label: 'Overall Quality',
+                            data: evaluationData.results.map(r => r.aggregate_scores.avg_overall_quality || 0),
+                            backgroundColor: 'rgba(246, 211, 101, 0.8)'
+                        }}
+                    ]
+                }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {{
+                        y: {{
+                            beginAtZero: true,
+                            max: 5,
+                            ticks: {{
+                                callback: function(value) {{
+                                    return value.toFixed(1);
+                                }}
+                            }}
+                        }}
+                    }},
+                    plugins: {{
+                        legend: {{
+                            position: 'bottom'
+                        }},
+                        tooltip: {{
+                            callbacks: {{
+                                label: function(context) {{
+                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '/5';
+                                }}
+                            }}
+                        }}
+                    }}
+                }}
+            }});
+        }}
+
         // Render cost table
         function renderCostTable() {{
             const container = document.getElementById('cost-table');
@@ -1536,6 +1829,17 @@ def generate_html_report(all_results: List[Dict], output_file: str):
                         badges.push(vizCorrect ?
                             '<span class="score-badge success">Correct Viz</span>' :
                             '<span class="score-badge warning">Wrong Viz</span>');
+
+                        // Add judge ratings if available
+                        if (r.judge_ratings && r.judge_ratings.judge_success) {{
+                            const factuality = r.judge_ratings.factuality;
+                            const helpfulness = r.judge_ratings.helpfulness;
+                            const quality = r.judge_ratings.overall_quality;
+
+                            badges.push(`<span class="score-badge info">Factuality: ${{factuality}}/5</span>`);
+                            badges.push(`<span class="score-badge info">Helpful: ${{helpfulness}}/5</span>`);
+                            badges.push(`<span class="score-badge info">Quality: ${{quality}}/5</span>`);
+                        }}
                     }}
 
                     return `
@@ -1558,10 +1862,35 @@ def generate_html_report(all_results: List[Dict], output_file: str):
                                     <span class="value">${{r.scores?.visualization_type || 'none'}}</span>
                                 </div>
                             </div>
+                            ${{r.generated_sql ? `
+                                <div style="margin-top: 10px;">
+                                    <strong style="font-size: 0.9rem;">Generated SQL Query:</strong>
+                                    <pre style="background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 4px; font-size: 0.8rem; overflow-x: auto; margin-top: 5px;">${{r.generated_sql}}</pre>
+                                </div>
+                            ` : ''}}
+
+                            ${{r.expected_query_pattern ? `
+                                <div style="margin-top: 10px;">
+                                    <strong style="font-size: 0.9rem;">Expected Pattern (Regex):</strong>
+                                    <pre style="background: #edf2f7; color: #2d3748; padding: 10px; border-radius: 4px; font-size: 0.8rem; overflow-x: auto; margin-top: 5px; border: 1px solid #cbd5e0;">${{r.expected_query_pattern}}</pre>
+                                </div>
+                            ` : ''}}
+
                             <div class="response-preview" id="preview-${{qId}}-${{r.agent}}">
                                 ${{hasError ? 'Error: ' + r.error : (r.response || 'No response').substring(0, 200)}}...
                             </div>
                             <button class="expand-btn" onclick="togglePreview('${{qId}}-${{r.agent}}')">Show Full Response</button>
+
+                            ${{r.judge_ratings && r.judge_ratings.judge_success ? `
+                                <div style="margin-top: 10px; padding: 10px; background: #edf2f7; border-left: 3px solid #667eea; border-radius: 4px; font-size: 0.85rem;">
+                                    <strong>Judge Feedback:</strong>
+                                    <div style="margin-top: 5px;">
+                                        <div><strong>Factuality:</strong> ${{r.judge_ratings.factuality_reasoning}}</div>
+                                        <div style="margin-top: 3px;"><strong>Helpfulness:</strong> ${{r.judge_ratings.helpfulness_reasoning}}</div>
+                                        <div style="margin-top: 3px;"><strong>Overall:</strong> ${{r.judge_ratings.overall_reasoning}}</div>
+                                    </div>
+                                </div>
+                            ` : ''}}
                         </div>
                     `;
                 }}).join('');
@@ -1606,6 +1935,20 @@ def generate_html_report(all_results: List[Dict], output_file: str):
                         event.target.textContent = 'Hide Full Response';
                     }}
                 }}
+            }}
+        }}
+
+        // Toggle SQL details row
+        function toggleSQLDetails(rowId) {{
+            const row = document.getElementById(rowId);
+            const button = event.target;
+
+            if (row.style.display === 'none') {{
+                row.style.display = 'table-row';
+                button.textContent = 'Hide SQL';
+            }} else {{
+                row.style.display = 'none';
+                button.textContent = 'Show SQL';
             }}
         }}
 
@@ -1667,16 +2010,295 @@ def generate_html_report(all_results: List[Dict], output_file: str):
             container.innerHTML = categoriesHtml;
         }}
 
+        // Render individual results table
+        function renderIndividualResultsTable() {{
+            const container = document.getElementById('individual-results-table');
+
+            // Collect all turns from all agents
+            const allTurns = [];
+            evaluationData.results.forEach(result => {{
+                result.dialogues.forEach(dialogue => {{
+                    dialogue.turns.forEach(turn => {{
+                        allTurns.push({{
+                            agent: result.agent_name,
+                            dialogue_id: dialogue.dialogue_id,
+                            dialogue_title: dialogue.title,
+                            category: dialogue.category,
+                            turn_id: turn.turn_id,
+                            user_message: turn.user_message,
+                            response_time: turn.response_time,
+                            scores: turn.scores,
+                            judge_ratings: turn.judge_ratings,
+                            error: turn.error,
+                            is_followup: turn.is_followup
+                        }});
+                    }});
+                }});
+            }});
+
+            // Create table rows
+            const rows = allTurns.map((turn, index) => {{
+                const hasError = turn.error ? true : false;
+                const scores = turn.scores || {{}};
+                const judge = turn.judge_ratings || {{}};
+
+                const queryValid = scores.query_validity === 1;
+                const patternMatch = scores.query_pattern_match === 1;
+                const vizCorrect = scores.visualization_correctness === 1;
+                const contextAware = scores.context_awareness === 1;
+
+                const factuality = judge.factuality || 0;
+                const helpfulness = judge.helpfulness || 0;
+                const quality = judge.overall_quality || 0;
+
+                // Truncate user message for table
+                const truncatedMsg = turn.user_message.length > 80
+                    ? turn.user_message.substring(0, 80) + '...'
+                    : turn.user_message;
+
+                const rowId = `all-row-${{turn.dialogue_id}}-${{turn.turn_id}}-${{turn.agent.replace(/[^a-zA-Z0-9]/g, '')}}`;
+
+                return `
+                    <tr style="${{index % 2 === 0 ? 'background: #f7fafc;' : ''}}">
+                        <td style="font-weight: 600;">${{turn.agent}}</td>
+                        <td><span style="font-size: 0.85rem; color: #718096;">${{turn.dialogue_id.toUpperCase()}}</span></td>
+                        <td style="max-width: 300px; font-size: 0.9rem;">${{truncatedMsg}}</td>
+                        <td style="text-align: center;">${{turn.turn_id}}</td>
+                        <td style="text-align: center;">
+                            <span class="score-badge ${{turn.is_followup ? 'info' : 'success'}}" style="font-size: 0.7rem;">
+                                ${{turn.is_followup ? 'Follow-up' : 'First'}}
+                            </span>
+                        </td>
+                        <td style="text-align: center;">
+                            ${{hasError ?
+                                '<span class="score-badge error" style="font-size: 0.7rem;">ERROR</span>' :
+                                (queryValid ? '✅' : '❌')
+                            }}
+                        </td>
+                        <td style="text-align: center;">${{patternMatch ? '✅' : '❌'}}</td>
+                        <td style="text-align: center;">${{vizCorrect ? '✅' : '❌'}}</td>
+                        <td style="text-align: center;">${{contextAware ? '✅' : '❌'}}</td>
+                        <td style="text-align: center; font-weight: 600; color: ${{factuality >= 4 ? '#48bb78' : factuality >= 3 ? '#ed8936' : '#f56565'}};">
+                            ${{factuality > 0 ? factuality.toFixed(1) : 'N/A'}}
+                        </td>
+                        <td style="text-align: center; font-weight: 600; color: ${{helpfulness >= 4 ? '#48bb78' : helpfulness >= 3 ? '#ed8936' : '#f56565'}};">
+                            ${{helpfulness > 0 ? helpfulness.toFixed(1) : 'N/A'}}
+                        </td>
+                        <td style="text-align: center; font-weight: 600; color: ${{quality >= 4 ? '#48bb78' : quality >= 3 ? '#ed8936' : '#f56565'}};">
+                            ${{quality > 0 ? quality.toFixed(1) : 'N/A'}}
+                        </td>
+                        <td style="text-align: center;">${{turn.response_time?.toFixed(2) || 'N/A'}}s</td>
+                        <td style="text-align: center;">${{scores.total_tokens?.toLocaleString() || '0'}}</td>
+                        <td style="text-align: center;">
+                            <button class="expand-btn" onclick="toggleSQLDetails('${{rowId}}')" style="padding: 4px 8px; font-size: 0.75rem;">
+                                Show SQL
+                            </button>
+                        </td>
+                    </tr>
+                    <tr id="${{rowId}}" style="display: none;">
+                        <td colspan="15" style="background: #f7fafc; padding: 15px;">
+                            ${{turn.generated_sql ? `
+                                <div style="margin-bottom: 10px;">
+                                    <strong>Generated SQL:</strong>
+                                    <pre style="background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 4px; font-size: 0.75rem; overflow-x: auto; margin-top: 5px;">${{turn.generated_sql}}</pre>
+                                </div>
+                            ` : '<div><em>No SQL generated</em></div>'}}
+                            ${{turn.expected_query_pattern ? `
+                                <div>
+                                    <strong>Expected Pattern (Regex):</strong>
+                                    <pre style="background: #edf2f7; color: #2d3748; padding: 10px; border-radius: 4px; font-size: 0.75rem; overflow-x: auto; margin-top: 5px; border: 1px solid #cbd5e0;">${{turn.expected_query_pattern}}</pre>
+                                </div>
+                            ` : ''}}
+                        </td>
+                    </tr>
+                `;
+            }}).join('');
+
+            container.innerHTML = `
+                <div style="overflow-x: auto;">
+                    <table class="comparison-table" style="font-size: 0.9rem;">
+                        <thead>
+                            <tr>
+                                <th style="min-width: 100px;">Agent</th>
+                                <th style="min-width: 60px;">Dialogue</th>
+                                <th style="min-width: 300px;">User Question</th>
+                                <th style="min-width: 50px;">Turn #</th>
+                                <th style="min-width: 80px;">Type</th>
+                                <th style="min-width: 80px;">Valid SQL</th>
+                                <th style="min-width: 80px;">Pattern</th>
+                                <th style="min-width: 80px;">Viz</th>
+                                <th style="min-width: 80px;">Context</th>
+                                <th style="min-width: 80px;">Factual</th>
+                                <th style="min-width: 80px;">Helpful</th>
+                                <th style="min-width: 80px;">Quality</th>
+                                <th style="min-width: 80px;">Time</th>
+                                <th style="min-width: 80px;">Tokens</th>
+                                <th style="min-width: 80px;">SQL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${{rows}}
+                        </tbody>
+                    </table>
+                </div>
+                <p style="margin-top: 15px; color: #718096; font-size: 0.9rem;">
+                    * Factual, Helpful, and Quality columns show LLM Judge ratings (1-5 scale)
+                    <br>* ✅ = Pass, ❌ = Fail for automated metrics
+                    <br>* Click "Show SQL" to see generated query vs expected pattern
+                </p>
+            `;
+        }}
+
+        // Render per-agent detailed tables
+        function renderPerAgentTables() {{
+            const container = document.getElementById('per-agent-tables');
+
+            const agentTables = evaluationData.results.map(result => {{
+                // Collect all turns for this agent
+                const turns = [];
+                result.dialogues.forEach(dialogue => {{
+                    dialogue.turns.forEach(turn => {{
+                        turns.push({{
+                            dialogue_id: dialogue.dialogue_id,
+                            dialogue_title: dialogue.title,
+                            category: dialogue.category,
+                            ...turn
+                        }});
+                    }});
+                }});
+
+                // Create rows for this agent
+                const rows = turns.map((turn, index) => {{
+                    const hasError = turn.error ? true : false;
+                    const scores = turn.scores || {{}};
+                    const judge = turn.judge_ratings || {{}};
+
+                    const queryValid = scores.query_validity === 1;
+                    const patternMatch = scores.query_pattern_match === 1;
+                    const vizCorrect = scores.visualization_correctness === 1;
+                    const contextAware = scores.context_awareness === 1;
+
+                    const factuality = judge.factuality || 0;
+                    const helpfulness = judge.helpfulness || 0;
+                    const quality = judge.overall_quality || 0;
+
+                    const rowId = `agent-row-${{turn.dialogue_id}}-${{turn.turn_id}}-${{index}}`;
+
+                    return `
+                        <tr style="${{index % 2 === 0 ? 'background: #f7fafc;' : ''}}">
+                            <td style="text-align: center;">${{turn.dialogue_id.toUpperCase()}}</td>
+                            <td style="text-align: center;">${{turn.turn_id}}</td>
+                            <td style="max-width: 400px; font-size: 0.9rem;">${{turn.user_message}}</td>
+                            <td style="text-align: center;">
+                                ${{hasError ?
+                                    '<span class="score-badge error" style="font-size: 0.7rem;">ERROR</span>' :
+                                    (queryValid ? '✅' : '❌')
+                                }}
+                            </td>
+                            <td style="text-align: center;">${{patternMatch ? '✅' : '❌'}}</td>
+                            <td style="text-align: center;">${{vizCorrect ? '✅' : '❌'}}</td>
+                            <td style="text-align: center;">${{contextAware ? '✅' : '❌'}}</td>
+                            <td style="text-align: center; font-weight: 600; color: ${{factuality >= 4 ? '#48bb78' : factuality >= 3 ? '#ed8936' : '#f56565'}};">
+                                ${{factuality > 0 ? factuality.toFixed(1) : 'N/A'}}
+                            </td>
+                            <td style="text-align: center; font-weight: 600; color: ${{helpfulness >= 4 ? '#48bb78' : helpfulness >= 3 ? '#ed8936' : '#f56565'}};">
+                                ${{helpfulness > 0 ? helpfulness.toFixed(1) : 'N/A'}}
+                            </td>
+                            <td style="text-align: center; font-weight: 600; color: ${{quality >= 4 ? '#48bb78' : quality >= 3 ? '#ed8936' : '#f56565'}};">
+                                ${{quality > 0 ? quality.toFixed(1) : 'N/A'}}
+                            </td>
+                            <td style="text-align: center;">${{turn.response_time?.toFixed(2) || 'N/A'}}s</td>
+                            <td style="text-align: center;">${{scores.total_tokens?.toLocaleString() || '0'}}</td>
+                            <td style="text-align: center;">
+                                <button class="expand-btn" onclick="toggleSQLDetails('${{rowId}}')" style="padding: 4px 8px; font-size: 0.75rem;">
+                                    Show SQL
+                                </button>
+                            </td>
+                        </tr>
+                        <tr id="${{rowId}}" style="display: none;">
+                            <td colspan="13" style="background: #f7fafc; padding: 15px;">
+                                ${{turn.generated_sql ? `
+                                    <div style="margin-bottom: 10px;">
+                                        <strong>Generated SQL:</strong>
+                                        <pre style="background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 4px; font-size: 0.75rem; overflow-x: auto; margin-top: 5px;">${{turn.generated_sql}}</pre>
+                                    </div>
+                                ` : '<div><em>No SQL generated</em></div>'}}
+                                ${{turn.expected_query_pattern ? `
+                                    <div>
+                                        <strong>Expected Pattern (Regex):</strong>
+                                        <pre style="background: #edf2f7; color: #2d3748; padding: 10px; border-radius: 4px; font-size: 0.75rem; overflow-x: auto; margin-top: 5px; border: 1px solid #cbd5e0;">${{turn.expected_query_pattern}}</pre>
+                                    </div>
+                                ` : ''}}
+                            </td>
+                        </tr>
+                    `;
+                }}).join('');
+
+                // Calculate agent summary stats
+                const validTurns = turns.filter(t => !t.error);
+                const avgFactuality = validTurns.reduce((sum, t) => sum + (t.judge_ratings?.factuality || 0), 0) / validTurns.length;
+                const avgHelpfulness = validTurns.reduce((sum, t) => sum + (t.judge_ratings?.helpfulness || 0), 0) / validTurns.length;
+                const avgQuality = validTurns.reduce((sum, t) => sum + (t.judge_ratings?.overall_quality || 0), 0) / validTurns.length;
+
+                return `
+                    <div class="category-card">
+                        <h3 style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>${{result.agent_name}} - Detailed Results</span>
+                            <span style="font-size: 0.9rem; font-weight: normal; color: #718096;">
+                                Avg Judge Scores: Factual ${{avgFactuality.toFixed(2)}}, Helpful ${{avgHelpfulness.toFixed(2)}}, Quality ${{avgQuality.toFixed(2)}}
+                            </span>
+                        </h3>
+                        <div style="overflow-x: auto; margin-top: 15px;">
+                            <table class="comparison-table" style="font-size: 0.85rem;">
+                                <thead>
+                                    <tr>
+                                        <th>Dialogue</th>
+                                        <th>Turn</th>
+                                        <th style="min-width: 400px;">Question</th>
+                                        <th>Valid SQL</th>
+                                        <th>Pattern</th>
+                                        <th>Viz</th>
+                                        <th>Context</th>
+                                        <th>Factual</th>
+                                        <th>Helpful</th>
+                                        <th>Quality</th>
+                                        <th>Time</th>
+                                        <th>Tokens</th>
+                                        <th>SQL</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${{rows}}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }}).join('');
+
+            container.innerHTML = agentTables;
+        }}
+
         // Initialize all visualizations
-        renderOverview();
-        renderComparisonTable();
-        createValidityChart();
-        createTokenChart();
-        createTimeChart();
-        createCostChart();
-        renderCostTable();
-        renderQuestionResults();
-        renderCategoryResults();
+        function initializeVisualizations() {{
+            renderOverview();
+            renderComparisonTable();
+            createValidityChart();
+            createTokenChart();
+            createTimeChart();
+            createCostChart();
+            createJudgeChart();
+            renderCostTable();
+            renderQuestionResults();
+            renderCategoryResults();
+            renderIndividualResultsTable();
+            renderPerAgentTables();
+        }}
+
+        // Load data when page loads
+        window.addEventListener('DOMContentLoaded', () => {{
+            loadEvaluationData();
+        }});
     </script>
 </body>
 </html>"""
@@ -1693,14 +2315,19 @@ def generate_comparison_report(all_results: List[Dict]) -> str:
     report.append("# Threat Explorer Agent Evaluation Report")
     report.append(f"\n**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-    # Add visualization mode info
+    # Add dialogue and turn info
+    total_dialogues = all_results[0]['total_dialogues'] if all_results else 0
+    total_turns = all_results[0]['total_turns'] if all_results else 0
     viz_enabled = all_results[0]['visualizations_enabled'] if all_results else True
+
+    report.append(f"\n**Total Dialogues:** {total_dialogues}")
+    report.append(f"\n**Total Conversation Turns:** {total_turns}")
     report.append(f"\n**Visualizations:** {'ENABLED' if viz_enabled else 'DISABLED'}\n")
 
     # Summary table
     report.append("## Performance Summary\n")
-    report.append("| Agent | Query Validity | Pattern Match | Viz Correct | Avg Time (s) | Recommendations |\n")
-    report.append("|-------|----------------|---------------|-------------|--------------|------------------|\n")
+    report.append("| Agent | Query Validity | Pattern Match | Viz Correct | Context Aware | Avg Time (s) | Recommendations |\n")
+    report.append("|-------|----------------|---------------|-------------|---------------|--------------|------------------|\n")
 
     for result in all_results:
         scores = result["aggregate_scores"]
@@ -1709,14 +2336,32 @@ def generate_comparison_report(all_results: List[Dict]) -> str:
             f"{scores['query_validity_rate']:.1%} | "
             f"{scores['query_pattern_match_rate']:.1%} | "
             f"{scores['visualization_correctness_rate']:.1%} | "
+            f"{scores['context_awareness_rate']:.1%} | "
             f"{scores['avg_response_time']:.2f} | "
             f"{scores['recommendations_rate']:.1%} |\n"
         )
 
+    # LLM Judge Ratings table
+    if all_results and all_results[0].get("use_judge"):
+        report.append("\n## LLM-as-a-Judge Ratings (1-5 Scale)\n")
+        report.append("| Agent | Factuality | Helpfulness | Overall Quality | Judge Success Rate |\n")
+        report.append("|-------|------------|-------------|-----------------|--------------------|\n")
+
+        for result in all_results:
+            scores = result["aggregate_scores"]
+            if scores.get("avg_factuality", 0) > 0:
+                report.append(
+                    f"| {result['agent_name']} | "
+                    f"{scores.get('avg_factuality', 0):.2f}/5 | "
+                    f"{scores.get('avg_helpfulness', 0):.2f}/5 | "
+                    f"{scores.get('avg_overall_quality', 0):.2f}/5 | "
+                    f"{scores.get('judge_success_rate', 0):.1%} |\n"
+                )
+
     # Token usage table
     report.append("\n## Token Usage Summary\n")
-    report.append("| Agent | Total Tokens | Avg Tokens/Query | Input Tokens | Output Tokens |\n")
-    report.append("|-------|--------------|------------------|--------------|---------------|\n")
+    report.append("| Agent | Total Tokens | Avg Tokens/Turn | Input Tokens | Output Tokens |\n")
+    report.append("|-------|--------------|-----------------|--------------|---------------|\n")
 
     for result in all_results:
         scores = result["aggregate_scores"]
@@ -1730,47 +2375,55 @@ def generate_comparison_report(all_results: List[Dict]) -> str:
 
     # Cost analysis table
     report.append("\n## Estimated Cost Analysis (GPT-4o-mini pricing)\n")
-    report.append("| Agent | Total Cost | Cost/Query | Input Cost | Output Cost |\n")
-    report.append("|-------|------------|------------|------------|-------------|\n")
+    report.append("| Agent | Total Cost | Cost/Turn | Input Cost | Output Cost |\n")
+    report.append("|-------|------------|-----------|------------|-------------|\n")
 
     for result in all_results:
         scores = result["aggregate_scores"]
         total_cost = calculate_cost(scores['total_input_tokens'], scores['total_output_tokens'])
-        cost_per_query = total_cost / result['total_questions'] if result['total_questions'] > 0 else 0
+        cost_per_turn = total_cost / result['total_turns'] if result['total_turns'] > 0 else 0
         input_cost = calculate_cost(scores['total_input_tokens'], 0)
         output_cost = calculate_cost(0, scores['total_output_tokens'])
 
         report.append(
             f"| {result['agent_name']} | "
             f"${total_cost:.4f} | "
-            f"${cost_per_query:.4f} | "
+            f"${cost_per_turn:.4f} | "
             f"${input_cost:.4f} | "
             f"${output_cost:.4f} |\n"
         )
 
-    # Detailed results by category
-    report.append("\n## Results by Question Category\n")
+    # Detailed results by dialogue category
+    report.append("\n## Results by Dialogue Category\n")
 
     categories = set()
     for result in all_results:
-        for response in result["responses"]:
-            if "category" in response:
-                categories.add(response["category"])
+        for dialogue in result["dialogues"]:
+            if "category" in dialogue:
+                categories.add(dialogue["category"])
 
     for category in sorted(categories):
         report.append(f"\n### {category.replace('_', ' ').title()}\n")
 
         for result in all_results:
-            cat_responses = [r for r in result["responses"] if r.get("category") == category]
-            if cat_responses:
-                valid = sum(1 for r in cat_responses if "error" not in r and r["scores"]["query_validity"] == 1)
-                report.append(f"- **{result['agent_name']}**: {valid}/{len(cat_responses)} valid queries\n")
+            cat_dialogues = [d for d in result["dialogues"] if d.get("category") == category]
+            if cat_dialogues:
+                # Count valid turns across all dialogues in this category
+                total_turns = sum(len(d["turns"]) for d in cat_dialogues)
+                valid_turns = sum(
+                    1 for d in cat_dialogues for t in d["turns"]
+                    if "error" not in t and t.get("scores", {}).get("query_validity") == 1
+                )
+                report.append(
+                    f"- **{result['agent_name']}**: {valid_turns}/{total_turns} valid turns "
+                    f"across {len(cat_dialogues)} dialogue(s)\n"
+                )
 
     # Winner analysis
     report.append("\n## Best Performer by Metric\n")
 
-    metrics = ["query_validity_rate", "query_pattern_match_rate", "visualization_correctness_rate", "recommendations_rate"]
-    metric_names = ["Query Validity", "Pattern Match", "Visualization Correctness", "Recommendations Rate"]
+    metrics = ["query_validity_rate", "query_pattern_match_rate", "visualization_correctness_rate", "context_awareness_rate", "recommendations_rate"]
+    metric_names = ["Query Validity", "Pattern Match", "Visualization Correctness", "Context Awareness", "Recommendations Rate"]
 
     for metric, name in zip(metrics, metric_names):
         best = max(all_results, key=lambda x: x["aggregate_scores"][metric])
@@ -1790,20 +2443,20 @@ def generate_comparison_report(all_results: List[Dict]) -> str:
     most_efficient = min(all_results, key=lambda x: x["aggregate_scores"]["avg_total_tokens"])
     report.append(
         f"- **Most Token-Efficient:** {most_efficient['agent_name']} - "
-        f"{most_efficient['aggregate_scores']['avg_total_tokens']:.0f} tokens/query avg\n"
+        f"{most_efficient['aggregate_scores']['avg_total_tokens']:.0f} tokens/turn avg\n"
     )
 
-    # Most cost-effective agent (lowest cost per query)
-    def get_cost_per_query(result):
+    # Most cost-effective agent (lowest cost per turn)
+    def get_cost_per_turn(result):
         scores = result["aggregate_scores"]
         total_cost = calculate_cost(scores['total_input_tokens'], scores['total_output_tokens'])
-        return total_cost / result['total_questions'] if result['total_questions'] > 0 else float('inf')
+        return total_cost / result['total_turns'] if result['total_turns'] > 0 else float('inf')
 
-    most_cost_effective = min(all_results, key=get_cost_per_query)
-    cost_pq = get_cost_per_query(most_cost_effective)
+    most_cost_effective = min(all_results, key=get_cost_per_turn)
+    cost_pt = get_cost_per_turn(most_cost_effective)
     report.append(
         f"- **Most Cost-Effective:** {most_cost_effective['agent_name']} - "
-        f"${cost_pq:.4f}/query avg\n"
+        f"${cost_pt:.4f}/turn avg\n"
     )
 
     return "\n".join(report)
@@ -1831,6 +2484,9 @@ def main():
     if not api_key:
         print("❌ Error: OPENAI_API_KEY not found in environment")
         sys.exit(1)
+
+    # Initialize OpenAI client for LLM judge
+    judge_client = OpenAI(api_key=api_key)
 
     # Initialize database
     print("🔧 Initializing database...")
@@ -1865,9 +2521,13 @@ def main():
         result = evaluate_agent(
             agent_name=agent_name,
             agent=agent,
-            questions=EVALUATION_QUESTIONS,
-            enable_viz=enable_viz
+            dialogues=EVALUATION_DIALOGUES,
+            enable_viz=enable_viz,
+            use_judge=True,
+            judge_client=judge_client
         )
+        # Add evaluation date to each result
+        result["evaluation_date"] = datetime.now().isoformat()
         all_results.append(result)
 
     # Save detailed results
@@ -1881,9 +2541,11 @@ def main():
     with open(args.report, 'w') as f:
         f.write(report)
 
-    # Generate and save HTML report
+    # Generate and save HTML report (references the JSON file)
     print(f"📊 Generating HTML report to {args.html}...")
-    generate_html_report(all_results, args.html)
+    # Extract just the filename from the JSON path for relative reference
+    json_filename = os.path.basename(args.output)
+    generate_html_report(args.html, json_filename)
 
     # Print summary
     print("\n" + "="*80)
@@ -1891,19 +2553,41 @@ def main():
     print("="*80)
     print(f"Evaluated {len(agents)} agents")
     print(f"Visualizations: {'ENABLED' if enable_viz else 'DISABLED'}")
-    print(f"Total questions: {len(EVALUATION_QUESTIONS)}")
-    print(f"Results saved to: {args.output}")
-    print(f"Markdown report saved to: {args.report}")
-    print(f"HTML report saved to: {args.html}")
+    print(f"Total dialogues: {len(EVALUATION_DIALOGUES)}")
+    total_turns = sum(len(d["turns"]) for d in EVALUATION_DIALOGUES)
+    print(f"Total conversation turns: {total_turns}")
+    print(f"\n📁 Files Generated:")
+    print(f"  • JSON Results: {args.output}")
+    print(f"  • Markdown Report: {args.report}")
+    print(f"  • HTML Report: {args.html}")
+
+    print(f"\n🌐 To View HTML Report:")
+    print(f"  The HTML file loads data from {os.path.basename(args.output)}")
+    print(f"  You must serve it via HTTP (CORS restriction). Run one of:")
+    print(f"\n  Option 1 (Python):")
+    print(f"    cd {os.path.dirname(os.path.abspath(args.output)) or '.'}")
+    print(f"    python -m http.server 8000")
+    print(f"    # Then open: http://localhost:8000/{os.path.basename(args.html)}")
+    print(f"\n  Option 2 (npx):")
+    print(f"    npx http-server -p 8000")
+    print(f"\n  Option 3 (VS Code):")
+    print(f"    Right-click {args.html} → 'Open with Live Server'")
+
     print("\nSummary:")
 
     for result in all_results:
         print(f"\n{result['agent_name']}:")
         print(f"  Query Validity: {result['aggregate_scores']['query_validity_rate']:.1%}")
+        print(f"  Context Awareness: {result['aggregate_scores']['context_awareness_rate']:.1%}")
+        if result.get("use_judge") and result['aggregate_scores'].get('avg_factuality', 0) > 0:
+            print(f"  Judge Ratings:")
+            print(f"    Factuality: {result['aggregate_scores']['avg_factuality']:.2f}/5")
+            print(f"    Helpfulness: {result['aggregate_scores']['avg_helpfulness']:.2f}/5")
+            print(f"    Overall Quality: {result['aggregate_scores']['avg_overall_quality']:.2f}/5")
         print(f"  Avg Response Time: {result['aggregate_scores']['avg_response_time']:.2f}s")
         print(f"  Error Rate: {result['aggregate_scores']['error_rate']:.1%}")
         print(f"  Total Tokens: {result['aggregate_scores']['total_tokens']:,}")
-        print(f"  Avg Tokens/Query: {result['aggregate_scores']['avg_total_tokens']:.0f}")
+        print(f"  Avg Tokens/Turn: {result['aggregate_scores']['avg_total_tokens']:.0f}")
 
 
 if __name__ == "__main__":
