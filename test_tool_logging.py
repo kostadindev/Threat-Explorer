@@ -36,9 +36,9 @@ def test_llm_agent_query():
 
 
 def test_react_agent_query():
-    """Test ReACT agent with a database query"""
+    """Test ReAct agent with a database query"""
     print("\n" + "=" * 80)
-    print("🧪 Testing ReACT Agent with Database Query")
+    print("🧪 Testing ReAct Agent with Database Query")
     print("=" * 80 + "\n")
 
     response = requests.post(
@@ -104,7 +104,7 @@ if __name__ == "__main__":
         test_database_info()
         test_direct_query()
         test_llm_agent_query()
-        # test_react_agent_query()  # Uncomment to test ReACT agent (takes longer)
+        # test_react_agent_query()  # Uncomment to test ReAct agent (takes longer)
 
         print("\n" + "=" * 80)
         print("✅ All tests completed!")

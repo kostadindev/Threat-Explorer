@@ -6,7 +6,7 @@
 
 *   **🤖 Multi-Agent Architecture**:
     *   **LLM Agent**: Direct interaction with Large Language Models for general queries.
-    *   **ReACT Agent**: Reasoning and Acting agent capable of using tools like search and threat analysis.
+    *   **ReAct Agent**: Reasoning and Acting agent capable of using tools like search and threat analysis.
     *   **Multi-Agent System**: A coordinated team of specialized agents (Threat Analyst, Defense Specialist, Compliance Expert).
 *   **🛡️ Threat Analysis Tools**: Integrated tools for assessing threat severity and searching for real-time intelligence.
 *   **📊 Interactive Visualization**: Dynamic charts and tables for visualizing threat data and query results.

@@ -1,4 +1,4 @@
-from agents import LLMAgent, ReACTAgent, MultiAgent
+from agents import LLMAgent, ReActAgent, MultiAgent
 from config import config
 
 
@@ -7,14 +7,14 @@ def get_agent():
     Factory function to get the configured agent.
 
     Returns:
-        BaseAgent: An instance of the configured agent type (LLM, ReACT, or Multi-Agent)
+        BaseAgent: An instance of the configured agent type (LLM, ReAct, or Multi-Agent)
 
     Raises:
         ValueError: If the configured agent type is unknown
     """
     agents = {
         "llm": LLMAgent,
-        "react": ReACTAgent,
+        "react": ReActAgent,
         "multi": MultiAgent,
     }
 

@@ -2,7 +2,7 @@
 """
 Agent Evaluation Script for Threat Explorer
 
-This script evaluates all three agents (LLM, ReACT, Multi-Agent) against a curated
+This script evaluates all three agents (LLM, ReAct, Multi-Agent) against a curated
 set of multi-turn dialogue conversations to compare their performance on key metrics including:
 - Query validity and pattern matching
 - Visualization correctness
@@ -15,7 +15,7 @@ queries, requiring agents to maintain context across multiple turns.
 
 Usage:
     python evaluate_agents.py
-    python evaluate_agents.py --agents llm react  # Test only LLM and ReACT agents
+    python evaluate_agents.py --agents llm react  # Test only LLM and ReAct agents
     python evaluate_agents.py --agents multi-agent # Test only Multi-Agent
     python evaluate_agents.py --html my_report.html --report my_report.md
 """
@@ -33,7 +33,7 @@ from openai import OpenAI
 # Add backend to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from agents import LLMAgent, ReACTAgent, MultiAgent, Message
+from agents import LLMAgent, ReActAgent, MultiAgent, Message
 from db.database import db
 
 # Load environment variables
@@ -656,7 +656,7 @@ def score_response(response: str, turn_data: Dict[str, Any], usage: Dict[str, in
     # Extract and validate SQL query
     sql_query = extract_sql_query(response)
 
-    # If no SQL found in response text, check metadata (for tool-using agents like ReACT)
+    # If no SQL found in response text, check metadata (for tool-using agents like ReAct)
     if not sql_query and metadata and "sql_queries" in metadata and metadata["sql_queries"]:
         # Use the first SQL query from the metadata
         sql_query = metadata["sql_queries"][0]
@@ -2706,7 +2706,7 @@ def main():
 
     agent_map = {
         "llm": ("LLM", LLMAgent),
-        "react": ("ReACT", ReACTAgent),
+        "react": ("ReAct", ReActAgent),
         "multi-agent": ("Multi-Agent", MultiAgent)
     }
 

@@ -187,8 +187,8 @@ Example:
 ================================================================================
 ```
 
-### 9. ReACT Agent Execution
-The ReACT agent logs:
+### 9. ReAct Agent Execution
+The ReAct agent logs:
 - Start of reasoning loop
 - User query
 - Available tools
@@ -198,7 +198,7 @@ The ReACT agent logs:
 Example:
 ```
 ================================================================================
-🤖 ReACT AGENT - Starting reasoning loop
+🤖 ReAct AGENT - Starting reasoning loop
 📝 User query: Find critical attacks in the database
 🔧 Available tools: ['Search', 'ThreatAnalysis', 'QueryDatabase', 'GetDatabaseInfo']
 ================================================================================
@@ -206,7 +206,7 @@ Example:
 [LangChain verbose output follows...]
 
 ================================================================================
-✅ ReACT AGENT - Reasoning complete
+✅ ReAct AGENT - Reasoning complete
 ================================================================================
 ```
 
@@ -299,7 +299,7 @@ This script will:
 1. Query database info
 2. Run a direct SQL query
 3. Ask the LLM agent to query the database
-4. (Optionally) Test the ReACT agent
+4. (Optionally) Test the ReAct agent
 
 Check the server terminal to see all the detailed logs!
 
@@ -317,7 +317,7 @@ curl -X POST http://localhost:8000/chat \
   }'
 ```
 
-#### Test ReACT Agent
+#### Test ReAct Agent
 ```bash
 curl -X POST http://localhost:8000/chat \
   -H "Content-Type: application/json" \

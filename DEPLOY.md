@@ -39,7 +39,7 @@ The Dockerfile creates a multi-stage build that:
 
 ## Features Included
 
-✅ **Backend API**: FastAPI server with all agent types (LLM, ReACT, Multi-Agent)
+✅ **Backend API**: FastAPI server with all agent types (LLM, ReAct, Multi-Agent)
 ✅ **Frontend**: Built React app served as static files
 ✅ **Database**: SQLite database loaded from CSV on startup
 ✅ **Auto-initialization**: Database loads automatically on startup

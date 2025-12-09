@@ -12,7 +12,7 @@ from db.database import db
 # Initialize FastAPI app
 app = FastAPI(
     title="Threat Explorer API",
-    description="Multi-agent cybersecurity assistant with LLM, ReACT, and Multi-Agent modes",
+    description="Multi-agent cybersecurity assistant with LLM, ReAct, and Multi-Agent modes",
     version="1.0.0"
 )
 

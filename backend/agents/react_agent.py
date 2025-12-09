@@ -8,7 +8,7 @@ from constants import REACT_AGENT_SYSTEM_PROMPT, get_system_prompt
 from tools import query_db_tool, get_db_info
 
 
-class ReACTAgent(BaseAgent):
+class ReActAgent(BaseAgent):
     """
     Tool-calling agent that can query the database.
     Uses OpenAI's native tool calling for efficient execution.
@@ -66,7 +66,7 @@ class ReACTAgent(BaseAgent):
 
         try:
             print("=" * 80, flush=True)
-            print("🤖 ReACT AGENT - Starting", flush=True)
+            print("🤖 ReAct AGENT - Starting", flush=True)
             print(f"📝 Messages: {len(lc_messages) - 1}", flush=True)
             print(f"🔧 Available tools: {[tool.name for tool in self.tools]}", flush=True)
             print(f"📊 Visualizations: {'enabled' if enable_visualizations else 'disabled'}", flush=True)
@@ -133,7 +133,7 @@ class ReACTAgent(BaseAgent):
 
             print("", flush=True)
             print("=" * 80, flush=True)
-            print("✅ ReACT AGENT - Complete", flush=True)
+            print("✅ ReAct AGENT - Complete", flush=True)
             print("=" * 80, flush=True)
             print("", flush=True)
 
@@ -160,7 +160,7 @@ class ReACTAgent(BaseAgent):
             )
 
         except Exception as e:
-            print(f"❌ ReACT AGENT - Error: {str(e)}", file=sys.stderr, flush=True)
+            print(f"❌ ReAct AGENT - Error: {str(e)}", file=sys.stderr, flush=True)
             import traceback
             traceback.print_exc()
             return AgentResponse(

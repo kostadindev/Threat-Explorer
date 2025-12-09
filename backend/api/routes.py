@@ -4,7 +4,7 @@ import sys
 
 from models import ChatRequest, SuggestionRequest, SuggestionResponse, QueryRequest, QueryResponse, TableInfoResponse
 from config import config
-from agents import LLMAgent, ReACTAgent, MultiAgent
+from agents import LLMAgent, ReActAgent, MultiAgent
 from db.database import db
 
 router = APIRouter()
@@ -24,7 +24,7 @@ def get_agent_by_type(agent_type: str):
     """
     agents = {
         "llm": LLMAgent,
-        "react": ReACTAgent,
+        "react": ReActAgent,
         "multi": MultiAgent,
     }
 
@@ -78,11 +78,11 @@ async def ping():
 @router.post("/chat")
 async def chat(request: ChatRequest):
     """
-    Chat endpoint that routes to the specified agent (LLM, ReACT, or Multi-Agent).
+    Chat endpoint that routes to the specified agent (LLM, ReAct, or Multi-Agent).
     Returns a streaming response for better UX.
 
     - **LLM Agent**: Direct language model responses
-    - **ReACT Agent**: Reasoning and acting with tool use
+    - **ReAct Agent**: Reasoning and acting with tool use
     - **Multi-Agent**: Multiple specialized agents coordinating
 
     Args:

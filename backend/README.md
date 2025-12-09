@@ -10,7 +10,7 @@ backend/
 │   ├── __init__.py
 │   ├── base.py         # Base agent class and models
 │   ├── llm_agent.py    # Simple LLM agent
-│   ├── react_agent.py  # ReACT agent with tools
+│   ├── react_agent.py  # ReAct agent with tools
 │   └── multi_agent.py  # Multi-agent coordinator
 ├── api/                 # API routes
 │   ├── __init__.py
@@ -31,8 +31,8 @@ backend/
 
 ## Features
 
-- **🤖 Three Agent Types**: LLM, ReACT, and Multi-Agent
-- **🔧 Tool Use**: ReACT agent can use search and threat analysis tools
+- **🤖 Three Agent Types**: LLM, ReAct, and Multi-Agent
+- **🔧 Tool Use**: ReAct agent can use search and threat analysis tools
 - **👥 Specialized Agents**: Multi-agent system with threat analysis, defense, and compliance specialists
 - **💬 Multi-turn Conversations**: Maintains conversation history
 - **🔒 Type-safe**: Uses Pydantic models for validation
@@ -78,7 +78,7 @@ Simple, direct language model responses. Best for straightforward Q&A.
 
 **Use case**: General cybersecurity questions, definitions, explanations
 
-### 2. ReACT Agent (`AGENT_TYPE=react`)
+### 2. ReAct Agent (`AGENT_TYPE=react`)
 Reasoning and Acting agent with tool access. Uses a thought-action-observation loop.
 
 **Available tools**:
@@ -106,7 +106,7 @@ Change the `AGENT_TYPE` in `.env`:
 # Simple LLM responses
 AGENT_TYPE=llm
 
-# ReACT with tools
+# ReAct with tools
 AGENT_TYPE=react
 
 # Multi-agent coordination
@@ -143,7 +143,7 @@ curl -X POST http://localhost:8000/chat \
   }'
 ```
 
-### Using ReACT Agent
+### Using ReAct Agent
 ```bash
 # .env
 AGENT_TYPE=react

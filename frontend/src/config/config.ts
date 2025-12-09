@@ -30,11 +30,10 @@ export const UI_CONFIG: Config = {
   inputPlaceholder: "Ask about attacks",
   maxInputLength: 512,
   defaultPrompts: [
-    "Show me the top 10 attack types",
-    "What protocols are most targeted?",
-    "Compare DDoS vs Malware attack frequency",
-    "Which source IPs have the most attacks?",
-    "Show me attack patterns by network segment",
+    "Show me the top 3 attack types in a pie chart",
+    "Show me the last 20 attacks",
+    "Show me attacks by network segment in a bar",
+    "Show attacks with Anomaly Score > 70"
   ],
   chatDescription: `
 ## Welcome to Threat Explorer @spin[🛡️]
@@ -72,7 +71,7 @@ Try the suggested prompts below!
   react: `
 ## Welcome to Threat Explorer @spin[🛡️]
 
-**ReACT Agent** - Iterative reasoning with autonomous tool use for deep analysis.
+**ReAct Agent** - Iterative reasoning with autonomous tool use for deep analysis.
 
 Ask complex questions and watch the agent reason through multiple steps, querying data and building comprehensive answers.
 
