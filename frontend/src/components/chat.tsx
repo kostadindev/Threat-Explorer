@@ -255,7 +255,7 @@ const ChatComponent: React.FC = () => {
                   style={{ width: 120 }}
                   options={[
                     { value: "llm", label: "LLM" },
-                    { value: "react", label: "ReACT" },
+                    { value: "react", label: "ReAct" },
                     { value: "multi", label: "Multi-Agent" },
                   ]}
                 />
