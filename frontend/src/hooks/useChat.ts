@@ -18,6 +18,10 @@ const getInitialSettings = () => {
   };
 };
 
+const generateConversationId = () => {
+  return `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
 export const useChat = () => {
   const initialSettings = getInitialSettings();
 
@@ -28,6 +32,7 @@ export const useChat = () => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [agentType, setAgentType] = useState<AgentType>(initialSettings.agentType);
   const [showVisualizations, setShowVisualizations] = useState(initialSettings.showVisualizations);
+  const [conversationId, setConversationId] = useState<string>(generateConversationId());
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleMessagesLoad = useCallback((loadedMessages: Message[]) => {
@@ -43,13 +48,18 @@ export const useChat = () => {
     setSuggestions([]);
     setIsSending(false);
     setIsTyping(false);
+    setConversationId(generateConversationId()); // Generate new conversation ID on reset
     localStorage.removeItem(CHAT_HISTORY_KEY);
   }, []);
 
   const sendMessage = useCallback(async (messageToSend: string) => {
     if (isSending || !messageToSend.trim()) return;
 
-    const userMessage: Message = { content: messageToSend, role: "user" };
+    const userMessage: Message = {
+      content: messageToSend,
+      role: "user",
+      timestamp: new Date().toISOString()
+    };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setInput("");
@@ -63,10 +73,15 @@ export const useChat = () => {
     abortControllerRef.current = controller;
 
     try {
-      const stream = await chatService.sendMessage(newMessages, agentType, showVisualizations, controller.signal);
+      const stream = await chatService.sendMessage(newMessages, agentType, showVisualizations, conversationId, controller.signal);
       if (!stream) return;
 
-      setMessages((prev) => [...prev, { content: "", role: "assistant", agentType }]);
+      setMessages((prev) => [...prev, {
+        content: "",
+        role: "assistant",
+        agentType,
+        timestamp: new Date().toISOString()
+      }]);
       setIsTyping(true);
 
       const reader = stream.getReader();
@@ -97,6 +112,7 @@ export const useChat = () => {
           content: "Error fetching response: " + (error instanceof Error ? error.message : "Unknown error"),
           role: "assistant",
           agentType,
+          timestamp: new Date().toISOString()
         };
         setMessages((prev) => [...prev, errorMessage]);
       }
@@ -104,7 +120,7 @@ export const useChat = () => {
       setIsSending(false);
       setIsTyping(false);
     }
-  }, [messages, isSending, agentType, showVisualizations]);
+  }, [messages, isSending, agentType, showVisualizations, conversationId]);
 
   // Update URL when settings change
   useEffect(() => {

@@ -6,6 +6,7 @@ from models import ChatRequest, SuggestionRequest, SuggestionResponse, QueryRequ
 from config import config
 from agents import LLMAgent, ReActAgent, MultiAgent
 from db.database import db
+from utils import conversation_logger
 
 router = APIRouter()
 
@@ -101,6 +102,7 @@ async def chat(request: ChatRequest):
         print("📨 INCOMING CHAT REQUEST", flush=True)
         print("=" * 80, flush=True)
         print(f"🤖 Agent Type: {request.agent_type}", flush=True)
+        print(f"🔑 Conversation ID: {request.conversation_id}", flush=True)
         print(f"🌡️  Temperature: {request.temperature}", flush=True)
         print(f"📏 Max Tokens: {request.max_tokens}", flush=True)
         print(f"💬 Conversation History ({len(request.history)} messages):", flush=True)
@@ -112,6 +114,14 @@ async def chat(request: ChatRequest):
 
         print("\n" + "=" * 80, flush=True)
         print("", flush=True)
+
+        # Log conversation to file if conversation_id is provided
+        if request.conversation_id:
+            conversation_logger.update_conversation(
+                conversation_id=request.conversation_id,
+                messages=request.history,
+                agent_type=request.agent_type
+            )
 
         if not config.OPENAI_API_KEY:
             raise HTTPException(

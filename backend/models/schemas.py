@@ -28,6 +28,7 @@ class ChatRequest(BaseModel):
     temperature: float = Field(default=0.7, examples=[0.7])
     max_tokens: int = Field(default=2000, examples=[2000])
     enable_visualizations: bool = Field(default=True, description="Whether to generate database visualizations (tables, charts, etc.)")
+    conversation_id: Optional[str] = Field(default=None, description="Unique identifier for the conversation")
 
 
 class ChatResponse(BaseModel):

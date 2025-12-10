@@ -7,11 +7,16 @@ const API_URL = import.meta.env.VITE_API_URL ||
 export type AgentType = "llm" | "react" | "multi";
 
 export const chatService = {
-  async sendMessage(history: Message[], agentType: AgentType, enableVisualizations: boolean = true, signal?: AbortSignal): Promise<ReadableStream<Uint8Array> | null> {
+  async sendMessage(history: Message[], agentType: AgentType, enableVisualizations: boolean = true, conversationId: string, signal?: AbortSignal): Promise<ReadableStream<Uint8Array> | null> {
     const response = await fetch(`${API_URL}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ history, agent_type: agentType, enable_visualizations: enableVisualizations }),
+      body: JSON.stringify({
+        history,
+        agent_type: agentType,
+        enable_visualizations: enableVisualizations,
+        conversation_id: conversationId
+      }),
       signal,
     });
 

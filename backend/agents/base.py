@@ -7,6 +7,7 @@ class Message(BaseModel):
     """Message model for chat interactions"""
     role: str = Field(..., examples=["user"])
     content: str = Field(..., examples=["What is a SQL injection attack?"])
+    timestamp: Optional[str] = Field(default=None, examples=["2025-12-09T10:30:00.000Z"])
 
 
 class AgentResponse(BaseModel):
