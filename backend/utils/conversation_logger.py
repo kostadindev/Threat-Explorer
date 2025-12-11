@@ -29,11 +29,17 @@ class ConversationLogger:
             conversation_id: Unique identifier for the conversation
             agent_type: Type of agent being used (llm, react, multi)
         """
+        # Create filename with timestamp only once when conversation starts
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"conversation_{conversation_id}_{timestamp}.json"
+        filepath = self.logs_dir / filename
+
         self.active_conversations[conversation_id] = {
             "conversation_id": conversation_id,
             "agent_type": agent_type,
             "started_at": datetime.now().isoformat(),
-            "messages": []
+            "messages": [],
+            "filepath": str(filepath)  # Store the filepath for reuse
         }
 
     def log_message(self, conversation_id: str, message: Message) -> None:
@@ -101,14 +107,21 @@ class ConversationLogger:
 
         conversation_data = self.active_conversations[conversation_id]
 
-        # Create filename with timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"conversation_{conversation_id}_{timestamp}.json"
-        filepath = self.logs_dir / filename
+        # Use the stored filepath (created when conversation started)
+        filepath = conversation_data.get("filepath")
+        if not filepath:
+            # Fallback: create a new filepath if it doesn't exist (shouldn't happen)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"conversation_{conversation_id}_{timestamp}.json"
+            filepath = str(self.logs_dir / filename)
+            conversation_data["filepath"] = filepath
+
+        # Create a copy of data without the filepath for JSON serialization
+        data_to_write = {k: v for k, v in conversation_data.items() if k != "filepath"}
 
         # Write to file
         with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(conversation_data, f, indent=2, ensure_ascii=False)
+            json.dump(data_to_write, f, indent=2, ensure_ascii=False)
 
     def update_conversation(self, conversation_id: str, messages: List[Message], agent_type: str) -> None:
         """
