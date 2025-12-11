@@ -23,17 +23,32 @@ Threat Explorer enables security experts to analyze cybersecurity data without e
 
 ### Prerequisites
 
-- Python 3.9+
+- Python 3.13
 - Node.js 18+
 - OpenAI API key
 
-### 1. Backend Setup
+
+The API will start at `http://localhost:8000`
+
+### 1. Frontend Setup
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Build frontend
+npm run build
+```
+
+### 2. Backend Setup
 
 ```bash
 cd backend
 
 # Create and activate virtual environment
-python3 -m venv venv
+python3.13 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
@@ -46,35 +61,7 @@ cp .env.example .env
 # Run backend server
 python main.py
 ```
-
-The API will start at `http://localhost:8000`
-
-### 2. Frontend Setup
-
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Run development server
-npm run dev
-```
-
-The UI will start at `http://localhost:5173`
-
-### 3. Production Build
-
-```bash
-# Build frontend
-cd frontend
-npm run build
-
-# Run production server (serves both API and frontend)
-cd ../backend
-python main.py
-```
-The API will start at `http://localhost:8000`
+The APP will start at `http://localhost:8000`
 
 ## Project Structure
 
