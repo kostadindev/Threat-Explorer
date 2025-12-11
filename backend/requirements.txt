@@ -22,7 +22,7 @@ dataclasses-json==0.6.7
 diskcache==5.6.3
 distlib==0.4.0
 distro==1.9.0
-docstring_parser==0.17.0
+docstring_parser>=0.15
 duckduckgo_search==6.3.5
 durationpy==0.10
 et_xmlfile==2.0.0
@@ -46,9 +46,9 @@ identify==2.6.15
 idna==3.11
 importlib_metadata==8.7.0
 importlib_resources==6.5.2
-instructor==1.13.0
+instructor>=1.0.0,<2.0.0
 Jinja2==3.1.6
-jiter==0.11.1
+jiter>=0.5.0
 json5==0.12.1
 json_repair==0.25.2
 jsonpatch==1.33
@@ -57,10 +57,10 @@ jsonref==1.1.0
 jsonschema==4.25.1
 jsonschema-specifications==2025.9.1
 kubernetes==34.1.0
-langchain==0.3.9
-langchain-community==0.3.9
+langchain==0.3.15
+langchain-community==0.3.15
 langchain-core==0.3.63
-langchain-openai==0.2.9
+langchain-openai==0.3.0
 langchain-text-splitters==0.3.8
 langsmith==0.1.147
 markdown-it-py==4.0.0
@@ -76,7 +76,7 @@ nodeenv==1.9.1
 numpy==2.3.5
 oauthlib==3.3.1
 onnxruntime==1.23.2
-openai==2.9.0
+openai==1.58.1
 openpyxl==3.1.5
 opentelemetry-api==1.39.0
 opentelemetry-exporter-otlp-proto-common==1.39.0
@@ -121,7 +121,7 @@ regex==2025.11.3
 requests==2.32.5
 requests-oauthlib==2.0.0
 requests-toolbelt==1.0.0
-rich==14.2.0
+rich>=13.0.0
 rpds-py==0.29.0
 rsa==4.9.1
 scipy==1.16.3
