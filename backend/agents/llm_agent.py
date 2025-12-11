@@ -30,13 +30,13 @@ class LLMAgent(BaseAgent):
                 "type": "function",
                 "function": {
                     "name": "query_database",
-                    "description": """Query the cybersecurity attacks database using SQL. The database contains a table called 'attacks' with fields like: Timestamp, Source IP Address, Destination IP Address, Attack Type, Severity Level, Protocol, Malware Indicators, etc. Column names with spaces must be quoted with double quotes.""",
+                    "description": """Query the cybersecurity attacks database using SQL. The database contains a table called 'attacks' with fields like: Timestamp, Source IP Address, Destination IP Address, Attack Type, Severity Level, Protocol, Malware Indicators, etc. Column names with spaces must be quoted with double quotes. If no LIMIT is specified, a default LIMIT 20 will be applied automatically.""",
                     "parameters": {
                         "type": "object",
                         "properties": {
                             "query": {
                                 "type": "string",
-                                "description": "SQL query to execute. Example: SELECT * FROM attacks WHERE \"Attack Type\" = 'Malware' LIMIT 5"
+                                "description": "SQL query to execute. Example: SELECT * FROM attacks WHERE \"Attack Type\" = 'Malware' LIMIT 5. If no LIMIT clause is provided, LIMIT 20 will be added automatically."
                             }
                         },
                         "required": ["query"]
@@ -59,7 +59,11 @@ class LLMAgent(BaseAgent):
     def _execute_tool(self, tool_name: str, tool_arguments: dict) -> str:
         """Execute a tool and return the result"""
         if tool_name == "query_database":
-            return query_database(tool_arguments.get("query", ""))
+            query = tool_arguments.get("query", "")
+            # Add default LIMIT 20 if not specified
+            if query and "limit" not in query.lower():
+                query = query.rstrip(';').rstrip() + " LIMIT 20"
+            return query_database(query)
         elif tool_name == "get_database_info":
             return get_database_info()
         else:
@@ -105,7 +109,7 @@ class LLMAgent(BaseAgent):
         llm = ChatOpenAI(
             model=self.model,
             temperature=temperature,
-            max_tokens=kwargs.get("max_tokens", 2000),
+            max_tokens=kwargs.get("max_tokens", 10000),
             openai_api_key=self.api_key
         )
 

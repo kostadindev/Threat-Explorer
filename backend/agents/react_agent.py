@@ -176,7 +176,7 @@ class ReActAgent(BaseAgent):
         self,
         messages: List[Message],
         temperature: float = 0.7,
-        max_tokens: int = 2000,
+        max_tokens: int = 10000,
         enable_visualizations: bool = True,
         **kwargs
     ):
