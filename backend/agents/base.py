@@ -8,6 +8,7 @@ class Message(BaseModel):
     role: str = Field(..., examples=["user"])
     content: str = Field(..., examples=["What is a SQL injection attack?"])
     timestamp: Optional[str] = Field(default=None, examples=["2025-12-09T10:30:00.000Z"])
+    agent_type: Optional[str] = Field(default=None, description="Type of agent that generated this message (for assistant messages)", examples=["llm", "react", "multi"])
 
 
 class AgentResponse(BaseModel):

@@ -15,7 +15,8 @@ class ChatRequest(BaseModel):
             },
             {
                 "role": "assistant",
-                "content": "A SQL injection attack is a code injection technique where an attacker inserts malicious SQL statements into an application's database query. This allows attackers to view, modify, or delete data they shouldn't have access to. For example, if a login form doesn't properly validate input, an attacker could input `' OR '1'='1` to bypass authentication."
+                "content": "A SQL injection attack is a code injection technique where an attacker inserts malicious SQL statements into an application's database query. This allows attackers to view, modify, or delete data they shouldn't have access to. For example, if a login form doesn't properly validate input, an attacker could input `' OR '1'='1` to bypass authentication.",
+                "agent_type": "llm"
             },
             {
                 "role": "user",
