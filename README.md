@@ -107,35 +107,6 @@ Edit `backend/.env`:
 OPENAI_API_KEY=sk-... # Your OpenAI API key
 ```
 
-## Agent Comparison
-
-| Agent | Speed | Cost | Accuracy | Best For |
-|-------|-------|------|----------|----------|
-| LLM Chain | Fastest | Lowest | 86.7% | Quick queries, cost-sensitive use |
-| ReAct | Medium | Medium | 86.7% (100% query validity) | Production, reliability-critical |
-| Multi-Agent | Slowest | Highest | 43.3% | Experimental only |
-
-**Recommendation:** Use ReAct for production (most reliable), LLM Chain for development (fastest/cheapest).
-
-## Evaluation & Testing
-
-Run agent evaluation suite:
-
-```bash
-cd backend
-python evaluate_agents.py
-```
-
-This generates:
-- `evaluation_results.json` - Raw test results
-- `evaluation_results.html` - HTML report
-- `evaluation_report.md` - Markdown summary
-
-## Tech Stack
-
-- **Backend:** FastAPI, LangChain, CrewAI, SQLite3, OpenAI GPT-4o mini
-- **Frontend:** React, TypeScript, Ant Design, Recharts, TailwindCSS, Vite
-- **Agents:** Custom LLM Chain, ReAct, Multi-Agent orchestration
 
 ## Research
 
