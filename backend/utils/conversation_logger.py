@@ -1,6 +1,5 @@
 """Conversation logging utility for tracking chat history."""
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any
@@ -136,16 +135,22 @@ class ConversationLogger:
             self.start_conversation(conversation_id, agent_type)
 
         # Clear existing messages and add all current messages
-        self.active_conversations[conversation_id]["messages"] = [
-            {
+        # Add agent_type to assistant messages
+        formatted_messages = []
+        for msg in messages:
+            message_dict = {
                 "role": msg.role,
                 "content": msg.content,
                 "timestamp": msg.timestamp or datetime.now().isoformat()
             }
-            for msg in messages
-        ]
+            # Add agent_type to assistant messages
+            if msg.role == "assistant":
+                message_dict["agent_type"] = agent_type
+            formatted_messages.append(message_dict)
 
-        # Update agent type
+        self.active_conversations[conversation_id]["messages"] = formatted_messages
+
+        # Update agent type at conversation level
         self.active_conversations[conversation_id]["agent_type"] = agent_type
 
         # Write to file

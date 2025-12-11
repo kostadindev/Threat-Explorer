@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, memo } from "react";
 import { Button, Input, Layout, theme, Select, Tooltip } from "antd";
-import { SendOutlined, ReloadOutlined, DownloadOutlined, UploadOutlined, BarChartOutlined, EyeInvisibleOutlined } from "@ant-design/icons";
+import { SendOutlined, ReloadOutlined, DownloadOutlined, UploadOutlined } from "@ant-design/icons";
 import { DarkModeSwitch } from "react-toggle-dark-mode";
 import { useChat } from "../hooks/useChat";
 import type { AgentType } from "../hooks/useChat";
@@ -118,8 +118,6 @@ const ChatComponent: React.FC = () => {
     suggestions,
     agentType,
     setAgentType,
-    showVisualizations,
-    setShowVisualizations,
     clearChat,
     sendMessage,
     onMessagesLoad,
@@ -258,14 +256,6 @@ const ChatComponent: React.FC = () => {
                     { value: "react", label: "ReAct" },
                     { value: "multi", label: "Multi-Agent" },
                   ]}
-                />
-              </Tooltip>
-              <Tooltip title={showVisualizations ? "Disable Visualizations" : "Enable Visualizations"}>
-                <Button
-                  icon={showVisualizations ? <BarChartOutlined /> : <EyeInvisibleOutlined />}
-                  onClick={() => setShowVisualizations(!showVisualizations)}
-                  onMouseDown={(e) => e.preventDefault()}
-                  type={showVisualizations ? "default" : "dashed"}
                 />
               </Tooltip>
               <Tooltip title="Export Chat to JSON">
