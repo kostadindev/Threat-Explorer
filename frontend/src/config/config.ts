@@ -31,7 +31,7 @@ export const UI_CONFIG: Config = {
   maxInputLength: 512,
   defaultPrompts: [
     "Show me the top 3 attack types in a pie chart",
-    "Show me the last 20 attacks",
+    "Show me the last 10 attacks",
     "Show me attacks by network segment in a bar",
     "Show attacks with Anomaly Score > 70"
   ],

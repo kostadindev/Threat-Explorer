@@ -1,46 +1,59 @@
 # Threat Explorer Design Experiment - Statistical Analysis
-**Analysis Date:** 2025-12-09 20:42:38
+**Analysis Date:** 2025-12-12 16:05:02
 
 ## Study Parameters
 - **Sample Size (N):** 12
 - **Significance Level (α):** 0.05
 - **Statistical Test:** Wilcoxon Signed-Rank Test (one-sided)
+- **Multiple Comparison Correction:** Holm-Bonferroni
 
 ## Preference Results
 - **Chart Version:** 12/12 (100.0%)
 - **Text Version:** 0/12 (0.0%)
 
-## Likert Scale Analysis (1-5)
-| Dimension | Text Avg | Chart Avg | Difference | p-value | Significance |
-|-----------|----------|-----------|------------|---------|-------------|
-| **A. Usability** (Well-organized) | 3.42 | **4.67** | +1.25 | 0.0020 | Significant ✅ |
-| **B. Helpfulness** (Right level of detail) | 3.50 | **4.42** | +0.92 | 0.0449 | Significant ✅ |
-| **C. Clarity** (Identify key evidence) | 3.17 | **4.50** | +1.33 | 0.0020 | Significant ✅ |
-| **D. Trust** (Trust output) | 3.83 | **4.58** | +0.75 | 0.0391 | Significant ✅ |
-| **E. Efficiency** (Understand quickly) | 2.58 | **4.75** | +2.17 | 0.0010 | Significant ✅ |
+## Likert Scale Analysis (1-5) with Holm-Bonferroni Correction
+| Dimension | Text Avg | Chart Avg | Diff | p-value | p-adjusted | Significance |
+|-----------|----------|-----------|------|---------|------------|-------------|
+| **A. Usability** (Well-organized) | 3.42 | **4.67** | +1.25 | 0.0020 | 0.0078 | Significant ✅ |
+| **B. Helpfulness** (Right level of detail) | 3.50 | **4.42** | +0.92 | 0.0449 | 0.0781 | Approaches Signif. ⚠️ |
+| **C. Clarity** (Identify key evidence) | 3.17 | **4.50** | +1.33 | 0.0020 | 0.0078 | Significant ✅ |
+| **D. Trust** (Trust output) | 3.83 | **4.58** | +0.75 | 0.0391 | 0.0781 | Approaches Signif. ⚠️ |
+| **E. Efficiency** (Understand quickly) | 2.58 | **4.75** | +2.17 | 0.0010 | 0.0049 | Significant ✅ |
+
+## Holm-Bonferroni Correction Details
+| Rank | Dimension | p-value | Holm Threshold (α/(n-rank+1)) | p-adjusted | Reject H₀? |
+|------|-----------|---------|-------------------------------|------------|------------|
+| 1 | E. Efficiency | 0.0010 | 0.0100 | 0.0049 | Yes ✅ |
+| 2 | A. Usability | 0.0020 | 0.0125 | 0.0078 | Yes ✅ |
+| 3 | C. Clarity | 0.0020 | 0.0167 | 0.0078 | Yes ✅ |
+| 4 | D. Trust | 0.0391 | 0.0250 | 0.0781 | No |
+| 5 | B. Helpfulness | 0.0449 | 0.0500 | 0.0781 | No |
 
 ## LaTeX Table for Paper
 ```latex
 \begin{table}[h]
     \centering
-    \caption{Design Experiment Results and Statistical Analysis (1--5 Likert Scale)}
+    \caption{Design Experiment Results with Holm-Bonferroni Correction (1--5 Likert Scale)}
     \label{tab:design_results}
-    \begin{tabular}{lccccc}
+    \begin{tabular}{lcccccc}
         \toprule
-        \textbf{Dimension / Survey Question} & Text Avg. & Chart Avg. & Difference & $\mathbf{p}$-value & Significance ($\mathbf{\alpha=0.05}$) \\
+        \textbf{Dimension} & Text & Chart & Diff & $p$-value & $p_{adj}$ & Signif. \\
         \midrule
-        \textbf{A. Usability} (Well-organized) & 3.42 & \textbf{4.67} & +1.25 & $\approx 0.002$ & \textbf{Significant} \\
-        \textbf{B. Helpfulness} (Right level of detail) & 3.50 & \textbf{4.42} & +0.92 & $\approx 0.045$ & \textbf{Significant} \\
-        \textbf{C. Clarity} (Identify key evidence) & 3.17 & \textbf{4.50} & +1.33 & $\approx 0.002$ & \textbf{Significant} \\
-        \textbf{D. Trust} (Trust output) & 3.83 & \textbf{4.58} & +0.75 & $\approx 0.039$ & \textbf{Significant} \\
-        \textbf{E. Efficiency} (Understand quickly) & 2.58 & \textbf{4.75} & +2.17 & < 0.001 & \textbf{Significant} \\
+        \textbf{A. Usability} (Well-organized) & 3.42 & \textbf{4.67} & +1.25 & 0.002 & 0.008 & \textbf{Yes} \\
+        \textbf{B. Helpfulness} (Right level of detail) & 3.50 & 4.42 & +0.92 & 0.045 & 0.078 & No \\
+        \textbf{C. Clarity} (Identify key evidence) & 3.17 & \textbf{4.50} & +1.33 & 0.002 & 0.008 & \textbf{Yes} \\
+        \textbf{D. Trust} (Trust output) & 3.83 & 4.58 & +0.75 & 0.039 & 0.078 & No \\
+        \textbf{E. Efficiency} (Understand quickly) & 2.58 & \textbf{4.75} & +2.17 & < .001 & 0.005 & \textbf{Yes} \\
         \bottomrule
     \end{tabular}
+    \\[0.5em]
+    \footnotesize{Note: $p_{adj}$ = Holm-Bonferroni adjusted p-value. Significance at $\alpha = 0.05$.}
 \end{table}
 ```
 
 ## Summary
-- **Significant improvements (p < 0.05):** 5/5
+- **Significant improvements (uncorrected, p < 0.05):** 5/5
+- **Significant improvements (Holm-corrected, p_adj < 0.05):** 3/5
 - **Average improvement across all dimensions:** 1.28 points
 - **Largest improvement:** E. Efficiency (Understand quickly) with +2.17 points
 
