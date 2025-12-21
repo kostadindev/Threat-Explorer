@@ -1,0 +1,23 @@
+{
+  "conversation_id": "conv_1766054038986_7bslkreth",
+  "agent_type": "llm",
+  "started_at": "2025-12-18T12:34:01.327027",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Show me the last 10 attacks",
+      "timestamp": "2025-12-18T10:34:01.321Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Here are the last 10 recorded attacks, showing the most recent incidents along with relevant details.\n\n```sql\nSELECT * FROM attacks ORDER BY \"Timestamp\" DESC LIMIT 10\n```\n\n```db-table\n{\n  \"columns\": [\"Timestamp\", \"Source IP Address\", \"Destination IP Address\", \"Source Port\", \"Destination Port\", \"Protocol\", \"Attack Type\", \"Severity Level\", \"User Information\", \"Geo-location Data\"],\n  \"data\": [\n    {\"Timestamp\": \"2023-10-11 19:34:23\", \"Source IP Address\": \"22.36.249.229\", \"Destination IP Address\": \"169.96.251.75\", \"Source Port\": \"50614\", \"Destination Port\": \"7642\", \"Protocol\": \"UDP\", \"Attack Type\": \"Intrusion\", \"Severity Level\": \"Medium\", \"User Information\": \"Vihaan Randhawa\", \"Geo-location Data\": \"Amravati, Kerala\"},\n    {\"Timestamp\": \"2023-10-11 18:50:41\", \"Source IP Address\": \"173.249.245.31\", \"Destination IP Address\": \"17.244.142.70\", \"Source Port\": \"15750\", \"Destination Port\": \"32560\", \"Protocol\": \"UDP\", \"Attack Type\": \"Intrusion\", \"Severity Level\": \"Low\", \"User Information\": \"Umang Lad\", \"Geo-location Data\": \"Satara, Kerala\"},\n    {\"Timestamp\": \"2023-10-11 17:44:41\", \"Source IP Address\": \"19.103.201.84\", \"Destination IP Address\": \"153.183.223.203\", \"Source Port\": \"18063\", \"Destination Port\": \"22086\", \"Protocol\": \"UDP\", \"Attack Type\": \"DDoS\", \"Severity Level\": \"Low\", \"User Information\": \"Lagan Raman\", \"Geo-location Data\": \"Vijayanagaram, Telangana\"},\n    {\"Timestamp\": \"2023-10-11 12:36:21\", \"Source IP Address\": \"15.87.212.52\", \"Destination IP Address\": \"155.139.226.246\", \"Source Port\": \"21572\", \"Destination Port\": \"24782\", \"Protocol\": \"UDP\", \"Attack Type\": \"Intrusion\", \"Severity Level\": \"Medium\", \"User Information\": \"Ahana  Wable\", \"Geo-location Data\": \"Karaikudi, Mizoram\"},\n    {\"Timestamp\": \"2023-10-11 12:29:23\", \"Source IP Address\": \"130.231.62.201\", \"Destination IP Address\": \"137.34.162.176\", \"Source Port\": \"60626\", \"Destination Port\": \"52879\", \"Protocol\": \"UDP\", \"Attack Type\": \"Intrusion\", \"Severity Level\": \"High\", \"User Information\": \"Vanya Gulati\", \"Geo-location Data\": \"Bellary, Gujarat\"},\n    {\"Timestamp\": \"2023-10-11 11:27:28\", \"Source IP Address\": \"144.195.160.119\", \"Destination IP Address\": \"60.237.184.216\", \"Source Port\": \"56016\", \"Destination Port\": \"6682\", \"Protocol\": \"UDP\", \"Attack Type\": \"Malware\", \"Severity Level\": \"Low\", \"User Information\": \"Krish Bava\", \"Geo-location Data\": \"Kurnool, Himachal Pradesh\"},\n    {\"Timestamp\": \"2023-10-11 08:55:37\", \"Source IP Address\": \"167.78.169.36\", \"Destination IP Address\": \"106.153.127.201\", \"Source Port\": \"25393\", \"Destination Port\": \"50539\", \"Protocol\": \"TCP\", \"Attack Type\": \"Malware\", \"Severity Level\": \"High\", \"User Information\": \"Hansh Bhandari\", \"Geo-location Data\": \"Raiganj, Tripura\"},\n    {\"Timestamp\": \"2023-10-11 07:42:45\", \"Source IP Address\": \"66.181.9.132\", \"Destination IP Address\": \"11.164.75.165\", \"Source Port\": \"64249\", \"Destination Port\": \"51792\", \"Protocol\": \"ICMP\", \"Attack Type\": \"Intrusion\", \"Severity Level\": \"Low\", \"User Information\": \"Ritvik Agrawal\", \"Geo-location Data\": \"Purnia, Kerala\"},\n    {\"Timestamp\": \"2023-10-11 07:36:54\", \"Source IP Address\": \"27.52.2.209\", \"Destination IP Address\": \"141.138.138.16\", \"Source Port\": \"47026\", \"Destination Port\": \"47930\", \"Protocol\": \"ICMP\", \"Attack Type\": \"Intrusion\", \"Severity Level\": \"High\", \"User Information\": \"Hrishita D’Alia\", \"Geo-location Data\": \"Avadi, Chhattisgarh\"},\n    {\"Timestamp\": \"2023-10-11 07:06:24\", \"Source IP Address\": \"117.123.202.179\", \"Destination IP Address\": \"76.155.186.198\", \"Source Port\": \"23981\", \"Destination Port\": \"51988\", \"Protocol\": \"UDP\", \"Attack Type\": \"Intrusion\", \"Severity Level\": \"Medium\", \"User Information\": \"Anika Shan\", \"Geo-location Data\": \"Bhopal, Manipur\"}\n  ]\n}\n```",
+      "timestamp": "2025-12-18T10:34:01.379Z",
+      "agent_type": "llm"
+    },
+    {
+      "role": "user",
+      "content": "filter  by severity level medium",
+      "timestamp": "2025-12-18T10:59:01.377Z"
+    }
+  ]
+}
